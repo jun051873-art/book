@@ -1001,7 +1001,7 @@ async function recordDeviceStatus(salonId) {
 }
 
 // ==========================================================================
-// 🛡️ AETHER V318 彈性門禁系統 (先逛逛、後激活)
+// 🛡️ AETHER V318 彈性門禁系統 (修正版：確保先逛逛不鎖死)
 // ==========================================================================
 
 async function checkLicense() {
@@ -1014,7 +1014,7 @@ async function checkLicense() {
         localStorage.setItem('v318_dev_id', devID);
     }
 
-    // 2. 登入校驗：如果不曾綁定，跳出「邀請激活」而非強制輸入
+    // 2. 登入校驗：如果不曾綁定，跳出「邀請激活」
     if (!auth || !auth.id || auth.id === "未綁定") {
         const { value: action } = await Swal.fire({
             title: '歡迎來到 專屬空間',
@@ -1029,7 +1029,6 @@ async function checkLicense() {
             reverseButtons: true
         });
 
-        // 如果點擊「輸入金鑰激活」
         if (action) {
             const { value: formValues } = await Swal.fire({
                 title: '激活 AETHER PRO',
@@ -1059,15 +1058,17 @@ async function checkLicense() {
                 return await verifyKeyFromServer(formValues.sid, formValues.key, devID);
             }
         } else {
-            // 點擊「先去逛逛」：建立一個臨時的「未綁定」身分，讓系統能跑
+            // ✅ 關鍵修正：建立臨時身分並強制重新整理，確保整個 App 意識到現在是「Guest」狀態
             const guestAuth = { id: "未綁定", role: "guest", salonId: "GUEST" };
             localStorage.setItem('v318_booking_auth', JSON.stringify(guestAuth));
-            // 這裡不 reload，直接往下跑
+            location.reload(); // 重新載入以觸發正確的 pullFromCloud 邏輯
+            return;
         }
     }
 
-    // 3. 封鎖與過期監控 (只有已綁定的帳號才需要聯網校驗)
-    if (window.navigator.onLine && auth && auth.id !== "未綁定") {
+    // 3. 封鎖與過期監控 (只有「真的有綁定」的帳號才校驗雲端)
+    // 這裡增加判斷：auth.id 不能是 "未綁定"
+    if (window.navigator.onLine && auth && auth.id && auth.id !== "未綁定") {
         try {
             const docID = auth.fullID || auth.id;
             const snap = await db.collection("LicenseKeys_Booking").doc(docID).get();
@@ -1077,16 +1078,21 @@ async function checkLicense() {
                     executeSystemLockdown("此裝置已被封鎖，請聯繫管理員。");
                     return;
                 }
+                // 檢查過期：僅針對非永久授權進行判斷
                 if (cfg.expiryDate && Date.now() > cfg.expiryDate) {
                     executeSystemLockdown("授權已過期，請重新取得授權。");
                     return;
                 }
             }
-        } catch (e) { console.error("雲端驗證跳過", e); }
+        } catch (e) { 
+            console.error("雲端驗證跳過", e); 
+        }
     }
     
-    // 執行資料同步 (如果沒店號，pullFromCloud 會自動處理基礎邏輯)
-    pullFromCloud(); 
+    // 執行資料同步
+    if (typeof pullFromCloud === "function") {
+        pullFromCloud(); 
+    }
 }
 
 // 🚀 核心驗證邏輯：比對「店號」與「金鑰」
