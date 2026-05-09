@@ -729,12 +729,12 @@ html, body {
 <script>
 
 // ==========================================================================
-// 🚀 Aether V318 授權管理引擎 (圖片功能實作)
+// 🚀 Aether V318 授權管理引擎 (Firebase 實體連動版)
 // ==========================================================================
 
-// 1. 生成授權金鑰 (對應圖片：店長/試用選擇)
+// 1. 生成授權金鑰 (店長/試用) - 寫入雲端
 async function generateLicenseTrig() {
-    // 管理員二次驗證 (對應圖2)
+    // A. 管理員驗證
     const { value: password } = await Swal.fire({
         title: '管理員驗證',
         input: 'password',
@@ -742,78 +742,114 @@ async function generateLicenseTrig() {
         confirmButtonColor: '#1d1d1f'
     });
 
-    if (password !== "051873") { // 這裡建議由後台驗證，此處為邏輯展示
+    if (password !== "051873") {
         Swal.fire('驗證失敗', '密碼錯誤', 'error');
         return;
     }
 
-    // 選擇等級 (對應圖3)
+    // B. 選擇等級
     const { value: level } = await Swal.fire({
-        title: '請選擇金鑰授權等級',
+        title: '授權等級設定',
         input: 'radio',
         inputOptions: {
             'PRO': '👑 店長 (永久主鑰)',
             'TRIAL': '⏳ 試用 (自定義天數)'
         },
-        inputValidator: (value) => { if (!value) return '請選擇一個選項' }
+        inputValidator: (value) => !value && '請選擇一個選項'
     });
 
-    let expiryDays = null;
+    let expiryTimestamp = null;
     if (level === 'TRIAL') {
-        // 設定天數 (對應圖5)
         const { value: days } = await Swal.fire({
             title: '設定試用天數',
             input: 'number',
             inputValue: 30,
             inputAttributes: { min: 1, step: 1 }
         });
-        expiryDays = days;
+        // 計算到期毫秒數
+        expiryTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
     }
 
-    // 模擬生成金鑰 (對應圖7)
+    // C. 生成並寫入 Firebase
     const newKey = "BOK-" + Math.random().toString(36).substring(2, 12).toUpperCase();
     
-    Swal.fire({
-        title: '成功生成預約金鑰',
-        html: `
-            <div class="auth-input-group">
-                <p class="auth-gold-text">授權期限：${expiryDays ? expiryDays + ' 天試用期' : '永久授權'}</p>
-                <h2 style="letter-spacing:2px;">${newKey}</h2>
-            </div>
-            <button class="copy-btn" onclick="navigator.clipboard.writeText('${newKey}'); Swal.fire('已複製','','success')">
-                <i class="fas fa-copy"></i> 點我直接複製
-            </button>
-        `,
-        confirmButtonColor: '#1d1d1f'
-    });
+    try {
+        await db.collection("LicenseKeys_Booking").doc(newKey).set({
+            role: 'admin',
+            status: 'active',
+            level: level,
+            expiryDate: expiryTimestamp,
+            createdAt: Date.now(),
+            salonId: newKey // 主鑰的 salonId 即為自己
+        });
+
+        Swal.fire({
+            title: '成功生成主授權',
+            html: `
+                <div class="auth-input-group">
+                    <p class="auth-gold-text">等級：${level === 'PRO' ? '永久授權' : '試用金鑰'}</p>
+                    <h2 style="letter-spacing:2px; color:#D4AF37;">${newKey}</h2>
+                </div>
+                <button class="luxe-btn" onclick="navigator.clipboard.writeText('${newKey}'); Swal.fire('已複製','','success')">
+                    <i class="fas fa-copy"></i> 點我複製金鑰
+                </button>
+            `,
+            confirmButtonColor: '#1d1d1f'
+        });
+    } catch (err) {
+        console.error("生成失敗", err);
+        Swal.fire('系統錯誤', '無法寫入雲端數據庫', 'error');
+    }
 }
 
-// 2. 生成副授權 (對應圖8、9：給員工使用)
+// 2. 生成副授權 (給員工使用) - 需綁定主裝置
 async function generateSubLicense() {
+    // 取得當前主裝置資訊
+    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    if (!auth || auth.role !== 'admin') {
+        Swal.fire('權限不足', '只有主裝置能生成副授權', 'error');
+        return;
+    }
+
     const { value: staffName } = await Swal.fire({
         title: '生成副授權',
         input: 'text',
-        inputPlaceholder: '請輸入人員姓名 (如：王小明)',
+        inputPlaceholder: '輸入人員姓名 (如：小刀設計師)',
         showCancelButton: true,
         confirmButtonColor: '#1d1d1f'
     });
 
     if (staffName) {
-        const subKey = "BOK-SUB-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-        Swal.fire({
-            title: '副授權生成成功',
-            icon: 'success',
-            html: `
-                <p>請讓 <b>${staffName}</b> 在其裝置輸入：</p>
-                <h2 style="color:#D4AF37; letter-spacing:1px;">${subKey}</h2>
-            `,
-            confirmButtonColor: '#1d1d1f'
-        });
+        const subID = "SUB-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        const fullSubKey = `${auth.salonId}-${subID}`; // 格式：主鑰-SUB-XXXX
+
+        try {
+            await db.collection("LicenseKeys_Booking").doc(fullSubKey).set({
+                role: 'staff',
+                status: 'active',
+                ownerName: staffName,
+                salonId: auth.salonId, // 關聯到主店號
+                createdAt: Date.now()
+            });
+
+            Swal.fire({
+                title: '副授權生成成功',
+                icon: 'success',
+                html: `
+                    <p>請讓 <b>${staffName}</b> 在裝置輸入：</p>
+                    <h2 style="color:#D4AF37; letter-spacing:1px;">${fullSubKey}</h2>
+                `,
+                confirmButtonColor: '#1d1d1f'
+            });
+            if(typeof renderSet === 'function') renderSet(); // 刷新設定頁面列表
+        } catch (err) {
+            Swal.fire('系統錯誤', '無法生成副鑰', 'error');
+        }
     }
 }
 
 // ==========================================================================
-// --- S2: Firebase 雲端連接設定 (你的專屬身分證) ---
+// --- S2: Firebase 雲端連接設定 (穩定版) ---
 // ==========================================================================
 const firebaseConfig = {
   apiKey: "AIzaSyCMgz-UEFux6v1kcZhuvHaeSxhqxx-9zT4",
@@ -824,8 +860,12 @@ const firebaseConfig = {
   appId: "1:629392896879:web:88111e1d5416eb104fee9a"
 };
 
-// 啟動開關
-if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+// 確保不重複初始化
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+} else {
+    firebase.app(); 
+}
 const db = firebase.firestore();
 
 // ==========================================================================
