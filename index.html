@@ -105,7 +105,7 @@ background: #f9f9fb !important;
     /* 關鍵：開啟 iOS 原生絲滑滾動 */
     -webkit-overflow-scrolling: touch !important; 
     /* 給予底部空間，避開導航條 */
-    padding-bottom: 220px !important; 
+    padding-bottom: 180px !important; 
 }
 
 /* --- 顧客頁面比例修正：讓卡片在手機上縮小 --- */
@@ -176,13 +176,7 @@ background: #f9f9fb !important;
     z-index: 1000;
     border-bottom: 0.5px solid rgba(0,0,0,0.05) !important;
 }
-.content-scroll {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    /* 🚀 這裡調整為 160px，確保下方的 + 按鈕跟導航不吃字 */
-    padding-bottom: 160px !important; 
-}        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); margin: 15px 45px; border-radius: 40px; overflow: hidden; background: #f2f2f7; border: 0.3px solid var(--gold); }
+       .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); margin: 15px 45px; border-radius: 40px; overflow: hidden; background: #f2f2f7; border: 0.3px solid var(--gold); }
         .cal-day { background: #fff; min-height: 135px; padding: 20px; cursor: pointer; border: 0.3px solid rgba(212, 175, 55, 0.15); font-size: 1.5rem; position: relative; }
         .cal-day.today-highlight { background: rgba(212, 175, 55, 0.08) !important; }
         .client-grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 350px), 1fr)); gap: 25px; padding: 25px; }
@@ -213,27 +207,47 @@ background: #f9f9fb !important;
     font-weight: 800 !important;
 }
         .suggest-item { padding: 15px 20px; border-bottom: 0.5px solid #eee; font-weight: 900; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
-/* 🚀 Aether V318: 極限物理縮放樣式 */
+/* 🚀 物理空間：確保可以自由上下左右滑動，並為左側時間留白 */
 .lane-container {
     display: flex;
-    overflow-x: auto;
-    padding: 20px !important; /* 👈 縮小邊距，把更多空間留給內容 */
-    gap: var(--lane-gap) !important;
-    transition: none !important; /* 👈 確保手指捏的時候零延遲 */
+    overflow-x: auto !important; /* 強制開啟橫向滑動 */
+    overflow-y: auto !important; /* 強制開啟上下滑動 */
+    padding: 20px 20px 150px 70px !important; /* 左側留空間給時間標籤 */
+    gap: 30px;
     align-items: flex-start;
+    -webkit-overflow-scrolling: touch; /* iOS 絲滑滾動手感 */
+    height: calc(100vh - 100px); /* 確保高度足以滾動 */
 }
 
+/* 🚀 時間跑道：改用更穩定的結構，確保時間標籤不會跑掉 */
+.time-row-space { 
+    min-height: 240px; 
+    display: flex; 
+    flex-direction: row; 
+    gap: 12px; 
+    align-items: stretch; 
+    position: relative; 
+}
+
+.time-row-space::before {
+    content: attr(data-time);
+    position: absolute;
+    left: -60px; /* 往左移到 padding 區，不擋到預約卡片 */
+    top: 10px;
+    font-size: 0.9rem;
+    color: #bbb;
+    font-weight: 900;
+}
+
+/* 🚀 跑道寬度：固定寬度才能撐開橫向滑動區 */
 .lane {
     flex: 1;
-    min-width: var(--lane-w) !important;
+    min-width: 300px !important; 
     display: flex;
     flex-direction: column;
     gap: 20px;
-    transform-origin: top left; /* 👈 縮放原點，保證放大時不跑偏 */
     transition: none !important;
-    white-space: nowrap; /* 👈 縮小時名字不換行，維持上帝視角的整潔 */
 }
- 
      .time-row-space { min-height: 240px; display: flex; flex-direction: row; gap: 12px; align-items: stretch; }
     .apt-card {
     padding: 30px;
@@ -260,6 +274,22 @@ background: #f9f9fb !important;
     /* 防止卡片內的文字因為縮小而換行亂掉 */
     overflow: hidden;
 }
+
+/* 🚀 手動新增：生日輸入框樣式 */
+.shield-input {
+    width: 90px !important;
+    height: 60px !important;
+    font-size: 1.5rem !important;
+    font-weight: 900;
+    text-align: center;
+    border-radius: 20px !important;
+    border: 2px solid #f2f2f7 !important;
+    background: #f2f2f7 !important;
+    color: #1d1d1f;
+    outline: none;
+    display: inline-block; /* 確保尺寸生效 */
+}
+
         /* --- 【Aether Flow 美學語言：比例優化版】 --- */
         /* --- Aether Flow: 核心導航整合 --- */
        .nav {
@@ -320,8 +350,6 @@ background: #f9f9fb !important;
         .nav-item span { font-size: 0.75rem; font-weight: 900; letter-spacing: 0.5px; }
 
         /* 內容區塊的間距調整，確保不被導航條遮住 */
-        .content-scroll { padding-bottom: 150px !important; }
-
         .page { display: none; width: 100%; height: 100%; }
         .page.active { display: flex; flex-direction: column; }
         .tag-pill { font-size: 0.75rem; font-weight: 800; padding: 4px 12px; border-radius: 12px; background: #f0f0f0; color: #aaa; cursor: pointer; border: 1px solid #eee; transition: 0.2s; }
@@ -338,13 +366,12 @@ background: #f9f9fb !important;
     overflow-y: auto !important; /* 強制開啟垂直滑動 */
     -webkit-overflow-scrolling: touch; /* iOS 絲滑手感 */
 }
-        .shield-input { border-radius: 15px !important; width: 75px !important; height: 45px !important; text-align: center !important; border: 1.5px solid var(--gold) !important; background: #fff !important; font-weight: 900 !important; font-size: 1.2rem !important; display: inline-block !important; margin: 0 5px !important; }
         .tag-chip { display: inline-block; padding: 15px 28px; border-radius: 30px; border: 1px solid var(--gold); margin: 8px; font-weight: 900; font-size: 1.2rem; cursor: pointer; background: #fff; transition: 0.3s; }
         .tag-chip.selected { background: linear-gradient(135deg, var(--gold), #f3d060); color: #fff; border-color: var(--gold); }
         /* --- 【V318 全設備自適應大腦】 --- */
        @media (max-width: 768px) {
             /* 針對小螢幕，讓內容滾動區留出更多底部空間，防止被導航擋住 */
-            .content-scroll { padding-bottom: 200px !important; }
+            .content-scroll { padding-bottom: 180px !important; }
             
             /* 縮小導航條高度以適應手機比例 */
             .nav { height: 75px; bottom: 25px; }
@@ -535,16 +562,6 @@ html, body {
     height: 100%;
     -webkit-overflow-scrolling: touch;
 }
-
-/* 確保只有每一頁內部的滾動區可以滑動 */
-.content-scroll {
-    overflow-y: auto;
-    /* 這是關鍵：允許內部滾動，但不觸發外部回彈 */
-    overscroll-behavior-y: contain; 
-    -webkit-overflow-scrolling: touch;
-    height: 100%;
-}
-
 /* 針對顧客頁面特別強化 */
 #pg-cli .content-scroll {
     touch-action: pan-y; /* 只允許上下滑動，禁止手勢誤觸 */
@@ -572,6 +589,37 @@ html, body {
     color: var(--primary);
     opacity: 0.3;
     letter-spacing: 2px;
+}
+
+
+/* 🚀 授權金鑰彈窗專用精品樣式 */
+.auth-gold-text {
+    color: #D4AF37;
+    font-weight: 900;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+}
+
+.auth-input-group {
+    background: rgba(0,0,0,0.03);
+    border-radius: 20px;
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.copy-btn {
+    background: #1d1d1f;
+    color: #fff;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 15px;
+    font-weight: 900;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px auto;
 }
 
   </style>
@@ -679,6 +727,91 @@ html, body {
     </div>
 
 <script>
+
+// ==========================================================================
+// 🚀 Aether V318 授權管理引擎 (圖片功能實作)
+// ==========================================================================
+
+// 1. 生成授權金鑰 (對應圖片：店長/試用選擇)
+async function generateLicenseTrig() {
+    // 管理員二次驗證 (對應圖2)
+    const { value: password } = await Swal.fire({
+        title: '管理員驗證',
+        input: 'password',
+        inputPlaceholder: '請輸入管理密碼',
+        confirmButtonColor: '#1d1d1f'
+    });
+
+    if (password !== "你的管理密碼") { // 這裡建議由後台驗證，此處為邏輯展示
+        Swal.fire('驗證失敗', '密碼錯誤', 'error');
+        return;
+    }
+
+    // 選擇等級 (對應圖3)
+    const { value: level } = await Swal.fire({
+        title: '請選擇金鑰授權等級',
+        input: 'radio',
+        inputOptions: {
+            'PRO': '👑 店長 (永久主鑰)',
+            'TRIAL': '⏳ 試用 (自定義天數)'
+        },
+        inputValidator: (value) => { if (!value) return '請選擇一個選項' }
+    });
+
+    let expiryDays = null;
+    if (level === 'TRIAL') {
+        // 設定天數 (對應圖5)
+        const { value: days } = await Swal.fire({
+            title: '設定試用天數',
+            input: 'number',
+            inputValue: 30,
+            inputAttributes: { min: 1, step: 1 }
+        });
+        expiryDays = days;
+    }
+
+    // 模擬生成金鑰 (對應圖7)
+    const newKey = "BOK-" + Math.random().toString(36).substring(2, 12).toUpperCase();
+    
+    Swal.fire({
+        title: '成功生成預約金鑰',
+        html: `
+            <div class="auth-input-group">
+                <p class="auth-gold-text">授權期限：${expiryDays ? expiryDays + ' 天試用期' : '永久授權'}</p>
+                <h2 style="letter-spacing:2px;">${newKey}</h2>
+            </div>
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('${newKey}'); Swal.fire('已複製','','success')">
+                <i class="fas fa-copy"></i> 點我直接複製
+            </button>
+        `,
+        confirmButtonColor: '#1d1d1f'
+    });
+}
+
+// 2. 生成副授權 (對應圖8、9：給員工使用)
+async function generateSubLicense() {
+    const { value: staffName } = await Swal.fire({
+        title: '生成副授權',
+        input: 'text',
+        inputPlaceholder: '請輸入人員姓名 (如：王小明)',
+        showCancelButton: true,
+        confirmButtonColor: '#1d1d1f'
+    });
+
+    if (staffName) {
+        const subKey = "BOK-SUB-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+        Swal.fire({
+            title: '副授權生成成功',
+            icon: 'success',
+            html: `
+                <p>請讓 <b>${staffName}</b> 在其裝置輸入：</p>
+                <h2 style="color:#D4AF37; letter-spacing:1px;">${subKey}</h2>
+            `,
+            confirmButtonColor: '#1d1d1f'
+        });
+    }
+}
+
 // ==========================================================================
 // --- S2: Firebase 雲端連接設定 (你的專屬身分證) ---
 // ==========================================================================
@@ -694,6 +827,128 @@ const firebaseConfig = {
 // 啟動開關
 if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// ==========================================================================
+// 📡 [多裝置獨立報到系統]：讓每一台設備在後台都有獨立門牌
+// ==========================================================================
+async function recordDeviceStatus(salonId) {
+    if (!window.navigator.onLine || !salonId) return;
+
+    // 🚀 關鍵核心：為這台裝置產生一個這輩子固定的「身分證字號」
+    // 儲存在本機，確保這台手機不管重新整理幾次，在後台都是同一個位置
+    let deviceUUID = localStorage.getItem('v318_device_uuid');
+    if (!deviceUUID) {
+        deviceUUID = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+        localStorage.setItem('v318_device_uuid', deviceUUID);
+    }
+    
+    // 辨識型號
+    let model = "行動裝置";
+    const ua = navigator.userAgent;
+    if (ua.includes("iPhone")) model = "iPhone";
+    else if (ua.includes("iPad")) model = "iPad";
+    else if (ua.includes("Macintosh")) model = "Mac/PC";
+    else if (ua.includes("Windows NT")) model = "Windows PC";
+
+    // 🚀 設定門牌路徑：devices.DEV-XXXXXX
+    // 這樣在 Firebase 裡會變成一個清單，不會互相覆蓋
+    const devicePath = `devices.${deviceUUID}`;
+
+    try {
+        const snap = await db.collection("LicenseKeys_Booking")
+                            .where("salonId", "==", salonId)
+                            .get();
+        
+        if (snap.empty) return;
+
+        // 執行「路徑式更新」：只更新自己這台裝置的格子
+        const now = Date.now();
+        const batch = db.batch();
+        
+        snap.forEach(doc => {
+            batch.update(doc.ref, {
+                [devicePath]: {
+                    id: deviceUUID,
+                    model: model,
+                    lastSeen: now
+                },
+                // 全域最後更新時間（讓後台知道這間店有人在用）
+                lastSeenGlobal: now 
+            });
+        });
+
+        await batch.commit();
+        console.log(`📡 裝置 [${deviceUUID}] 已獨立報到: ${model}`);
+    } catch (e) {
+        console.warn("⚠️ 獨立報到失敗", e);
+    }
+}
+
+// ==========================================================================
+// 🛡️ AETHER V318 最終門禁系統 (裝置獨立卡片版)
+// ==========================================================================
+async function checkLicense() {
+    let auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    
+    // 🚀 為這台裝置抽一張號碼牌 (UUID)，永久存在這台機器裡
+    let devID = localStorage.getItem('v318_dev_id');
+    if(!devID) {
+        devID = 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        localStorage.setItem('v318_dev_id', devID);
+    }
+
+    if (!auth || !auth.id) {
+        const { value: shopID } = await Swal.fire({
+            title: '啟動 AETHER V318',
+            input: 'text',
+            inputPlaceholder: '請輸入店號...',
+            allowOutsideClick: false,
+            backdrop: `rgba(0,0,0,0.9)`
+        });
+
+        if (shopID) {
+            const cleanID = shopID.trim().toUpperCase();
+            const fullID = `${cleanID}-${devID}`; // 🚀 重點：店號-裝置ID (例如 051873-DEV-K92J)
+            auth = { id: cleanID, fullID: fullID };
+            localStorage.setItem('v318_booking_auth', JSON.stringify(auth));
+            
+            // 🚀 向雲端報到：建立獨立的裝置授權文件
+            await db.collection("LicenseKeys_Booking").doc(fullID).set({
+                salonId: cleanID,
+                ownerName: "新裝置",
+                deviceID: devID,
+                status: "active",
+                expire: null,
+                model: navigator.userAgent.includes("iPhone") ? "iPhone" : 
+                       (navigator.userAgent.includes("iPad") ? "iPad" : "PC/Mac"),
+                createdAt: Date.now()
+            });
+            location.reload();
+        }
+        return;
+    }
+
+    // 🚀 封鎖監控：只盯著這台裝置自己的文件
+    if (window.navigator.onLine) {
+        try {
+            const snap = await db.collection("LicenseKeys_Booking").doc(auth.fullID).get();
+            if (snap.exists) {
+                const cfg = snap.data();
+                // 🛑 如果你在後台按了封鎖，這台機器會立刻跳黑畫面
+                if (cfg.status === "blocked") {
+                    executeSystemLockdown("此裝置已被封鎖，請聯繫管理員。");
+                    return;
+                }
+                // ⏳ 檢查這台裝置的到期日
+                if (cfg.expire && Date.now() > cfg.expire) {
+                    executeSystemLockdown("此裝置授權已過期。");
+                    return;
+                }
+            }
+        } catch (e) { console.error("門禁校驗失敗"); }
+    }
+    pullFromCloud();
+}
 
 // ==========================================================================
 // --- S3: 資料核心與 Firebase 雲端同步模組 ---
@@ -715,39 +970,38 @@ const db = firebase.firestore();
         ],
         appointments: [], clients: [], offDays: []
     };
-// ==========================================================================
-// --- 🚀 V318 鋼鐵核心：視覺統一 Toast 版 ---
-// ==========================================================================
+// 尋找你代碼中的 saveS 函數並替換：
 async function saveS() { 
-    // 🛡️ 鋼鐵保險：如果系統處於隔離鎖定狀態 (IS_LOCKED_VACUUM)，禁止任何存檔動作
-    // 這是為了防止斷網或授權異常時，誤將「空資料」上傳覆蓋雲端
     if (window.IS_LOCKED_VACUUM === true) {
         console.error("🚨 數據隔離保護中，攔截非法存檔請求！");
         return; 
     }
 
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-    if (!auth || !auth.key) return;
+    if (!auth || !auth.id || auth.id === "未綁定") return;
 
     try {
-        // 🚀 核心補丁：加入最後更新時間戳記 (Timestamp)
-        // 這能讓系統在多裝置同步時，自動辨識哪份資料才是最新的，防止「吃掉」預約
         store.lastUpdate = Date.now(); 
-
-        // 先將資料存入本機，保證第一時間不卡頓
         localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store)); 
 
-        // 雲端同步 (如果店號正確)
-        if (auth.id && auth.id !== "未綁定") {
-            // 使用 set 覆蓋整個文件，並帶入最新的時間版本
-            await db.collection("Salons").doc(auth.id).set({
-                ...store,
-                syncCode: auth.key 
+        if (window.navigator.onLine) {
+            // 🚀 改為 update，這樣就不會動到後台設定的 status 或 expiryDate
+            await db.collection("Salons").doc(auth.id).update({
+                appointments: store.appointments,
+                clients: store.clients,
+                stylists: store.stylists,
+                tags: store.tags,
+                storeName: store.storeName,
+                lastUpdate: store.lastUpdate,
+                startH: store.startH,
+                endH: store.endH,
+                offDays: store.offDays,
+                offColor: store.offColor,
+                payTagsDef: store.payTagsDef
             });
 
-            console.log("✅ 雲端同步成功 (版本: " + store.lastUpdate + ")", auth.id);
+            console.log("✅ 雲端同步成功", auth.id);
 
-            // 只有存檔成功才跳 Toast (賈伯斯精品黑白風格)
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
@@ -758,140 +1012,15 @@ async function saveS() {
             });
             Toast.fire({ icon: 'success', title: '雲端同步成功' });
         }
-    } catch (e) {
-        console.error("⚠️ 同步報錯，但不影響本機運作", e);
+    } 
+    catch (e) {
+        // 如果是新店號尚未建立文件，update 會報錯，此時才用 set 建立
+        if (e.code === 'not-found') {
+            await db.collection("Salons").doc(auth.id).set(store);
+        }
+        console.error("⚠️ 同步處理中", e);
     }
 }
-// 🚀 V318 鋼鐵安全性監控：【2秒頻率版】主從連動 + 離線瞬時封鎖
-function startSecurityHeartbeat() {
-    console.log("🛡️ V318 安全守衛已上崗，執行 2 秒/次 鋼鐵監控...");
-    
-    setInterval(async () => {
-        const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-        
-        // 🛡️ 如果連 auth 資料都沒有，或是單機模式，就不跑巡邏
-        if (!auth || !auth.key || auth.id === "未綁定") return;
-
-        const isOnline = window.navigator.onLine;
-
-        // --- 🛡️ 第一部分：副裝置(staff) 離線封殺邏輯 ---
-        if (auth.role === 'staff' && !isOnline) {
-            // 🎯 執行數據真空隔離：清空記憶體，讓他什麼都看不了、改不了
-            window.IS_LOCKED_VACUUM = true; 
-            window.store = { stylists: [], tags: [], appointments: [], clients: [], offDays: [] };
-            
-            // 重新渲染畫面使之變為空白，徹底切斷離線使用的可能性
-            if (typeof initMonth === 'function') initMonth();
-            if (typeof renderCli === 'function') renderCli();
-            
-            executeSystemLockdown("安全提醒：副裝置必須連接網路以同步授權，離線模式已自動封鎖數據。");
-            return; // 離線狀態下直接中斷，不跑後續雲端檢查
-        }
-
-        // --- 🛡️ 第二部分：雲端授權檢查 (僅在連網時執行) ---
-        if (isOnline) {
-            try {
-                // 🎯 1. 抓取當前金鑰的雲端狀態
-                const keySnap = await db.collection("LicenseKeys_Booking").doc(auth.key).get();
-                const now = new Date().getTime();
-                
-                let isBlock = false;
-                let reason = "";
-
-                // --- 判斷 A：金鑰是否還活著 ---
-                if (!keySnap.exists) {
-                    isBlock = true;
-                    reason = "您的授權已被從雲端撤銷";
-                } else {
-                    const keyData = keySnap.data();
-
-                    // --- 🚀 關鍵：主從連鎖處決 ---
-                    if (keyData.role === 'staff') {
-                        const masterSnap = await db.collection("LicenseKeys_Booking")
-                            .where("salonId", "==", auth.id)
-                            .where("role", "==", "admin")
-                            .get();
-
-                        if (!masterSnap.empty) {
-                            const masterData = masterSnap.docs[0].data();
-                            // 💀 連動鎖：老闆沒續費，員工一起死
-                            if (masterData.expire && now > masterData.expire) {
-                                isBlock = true;
-                                reason = "店鋪主授權試用期已滿，請聯繫店長";
-                            }
-                        } else {
-                            isBlock = true;
-                            reason = "找不到店鋪主授權，系統已鎖定";
-                        }
-                    }
-
-                    // --- 判斷 B：自身金鑰是否過期 ---
-                    if (!isBlock && keyData.expire && now > keyData.expire) {
-                        isBlock = true;
-                        reason = "您的試用授權已屆滿";
-                    }
-
-                    // --- 判斷 C：店號防盜檢查 ---
-                    if (!isBlock && auth.id !== keyData.salonId) {
-                        isBlock = true;
-                        reason = "安全驗證異常 (店號不符)";
-                    }
-                }
-
-                // 🚀 執行鎖死或自動解鎖
-                if (isBlock) {
-                    executeSystemLockdown(reason);
-                } else {
-                    // ✨ 鑽石修復：如果原本被鎖定（離線或過期），現在恢復合法了，自動解除黑屏
-                    const mask = document.getElementById('security-mask');
-                    if (mask && (window.IS_LOCKED_VACUUM || isOnline)) {
-                        console.log("💎 授權已恢復並連網，自動解除封鎖...");
-                        location.reload(); 
-                    }
-                }
-
-            } catch (e) {
-                console.warn("🛡️ 安全守衛巡邏中...");
-            }
-        }
-    }, 2000); 
-}
-// ==========================================================================
-// --- 🛡️ V318 鋼鐵門禁：主動式防護引擎 (販售版專用) ---
-// ==========================================================================
-
-
-// ==========================================================================
-// 🛡️ V318 鋼鐵安全引擎：數據真空隔離 + 2秒頻率主從連動 (整合版)
-// ==========================================================================
-
-// ==========================================================================
-// 🛡️ 核心：數據存檔守門員 (防止隔離期間誤存空資料上雲端)
-// ==========================================================================
-async function saveS() { 
-    // 🚀 鋼鐵保險：如果系統處於隔離鎖定狀態 (IS_LOCKED_VACUUM)，禁止任何存檔動作
-    if (window.IS_LOCKED_VACUUM === true) {
-        console.error("🚨 數據隔離保護中，攔截非法存檔請求！");
-        return; 
-    }
-    
-    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-    if (!auth || !auth.key) return;
-
-    try {
-        localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store)); 
-        if (auth.id && auth.id !== "未綁定") {
-            await db.collection("Salons").doc(auth.id).set({
-                ...store,
-                syncCode: auth.key 
-            });
-            console.log("雲端同步成功:", auth.id);
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1000 });
-            Toast.fire({ icon: 'success', title: '雲端同步成功' });
-        }
-    } catch (e) { console.error("同步失敗", e); }
-}
-
 // ==========================================================================
 // 🚀 第一部分：封鎖引擎 (隔離數據但不 reload，保留背景巡邏能力)
 // ==========================================================================
@@ -941,66 +1070,12 @@ function executeSystemLockdown(reason) {
 }
 
 // ==========================================================================
-// 🚀 第二部分：安全心跳監控 (每 2 秒一次，偵測到恢復後強制回填數據)
-// ==========================================================================
-function startSecurityHeartbeat() {
-    console.log("🛡️ V318 鋼鐵監控上崗 (2秒/次)...");
-    
-    setInterval(async () => {
-        const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-        if (!auth || !auth.key || auth.id === "未綁定") return;
-
-        try {
-            const keySnap = await db.collection("LicenseKeys_Booking").doc(auth.key).get();
-            const now = new Date().getTime();
-            let isBlock = false;
-            let reason = "";
-
-            if (!keySnap.exists) {
-                isBlock = true;
-                reason = "您的授權已被從雲端撤銷";
-            } else {
-                const keyData = keySnap.data();
-                // 💎 副鑰連動：檢查店鋪主鑰是否過期
-                if (keyData.role === 'staff') {
-                    const mSnap = await db.collection("LicenseKeys_Booking").where("salonId", "==", auth.id).where("role", "==", "admin").get();
-                    if (!mSnap.empty) {
-                        const mData = mSnap.docs[0].data();
-                        if (mData.expire && now > mData.expire) { isBlock = true; reason = "店鋪主授權試用期已滿"; }
-                    } else { isBlock = true; reason = "找不到店鋪主金鑰"; }
-                }
-                // 💎 自身過期檢查
-                if (!isBlock && keyData.expire && now > keyData.expire) { isBlock = true; reason = "您的試用授權已屆滿"; }
-                // 💎 店號安全檢查
-                if (!isBlock && auth.id !== keyData.salonId) { isBlock = true; reason = "安全驗證異常 (店號不符)"; }
-            }
-
-            if (isBlock) {
-                executeSystemLockdown(reason);
-            } else {
-                // ✨ 重點：偵測恢復解鎖
-                if (document.getElementById('security-mask')) {
-                    console.log("💎 偵測到授權恢復，執行數據強制回填...");
-                    window.IS_LOCKED_VACUUM = false; // 解除隔離鎖
-                    
-                    // 解鎖時先抓一次雲端，保證 reload 完資料是熱騰騰的
-                    if (typeof pullFromCloud === 'function') {
-                        await pullFromCloud(); 
-                    }
-                    location.reload(); 
-                }
-            }
-        } catch (e) { console.warn("🛡️ 安全巡邏中..."); }
-    }, 2000); 
-}
-
-
-
-// ==========================================================================
 // --- S4: 頁面顯示與分頁切換控制 ---
 // ==========================================================================
+    
     function showP(id, index) {
-    // 1. 【瞬發反應】：立即移動滑塊，不再等待
+         if(index === 2 && JSON.parse(localStorage.getItem('v318_booking_auth'))?.role === 'staff') return;   
+        // 1. 【瞬發反應】：立即移動滑塊，不再等待
     const mover = document.getElementById('nav-aether-mover');
     if(mover && index !== undefined) {
         mover.style.transform = `translateX(${index * 100}%)`;
@@ -1299,7 +1374,7 @@ function renderDay(ds) {
         lane.className = 'lane';
         lane.innerHTML = `<div style="text-align:center; font-weight:900; color:${s.color}; font-size:1.8rem; margin-bottom:20px;">${s.name}</div>`;
 
-        hours.forEach(t => {
+       hours.forEach(t => {
             const row = document.createElement('div');
             row.className = 'time-row-space';
             row.style.position = "relative";
@@ -1310,13 +1385,14 @@ function renderDay(ds) {
                 String(a.styId) === String(s.id)
             );
 
-            const label = `<div style="position:absolute; left:-45px; top:12px; font-size:0.75rem; color:#bbb; font-weight:900;">${t}</div>`;
+            // 🚀 物理空間修正：將時間標籤向左平移並加強字體顯示，確保在滑動時清晰可見
+            const label = `<div style="position:absolute; left:-55px; top:12px; font-size:0.85rem; color:#bbb; font-weight:900; width:45px; text-align:right;">${t}</div>`;
 
             if (matched.length) {
                 row.innerHTML = label + matched.map(a => {
                     const selectedTags = (a.payTags || []).map(tid => store.payTagsDef.find(pt => pt.id === tid)).filter(x => x);
                     return `
-                        <div class="apt-card ${a.done ? 'completed' : ''}" style="--c:${s.color}; margin-left:15px; width:calc(100% - 20px); padding:25px; border-radius:35px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
+                        <div class="apt-card ${a.done ? 'completed' : ''}" style="--c:${s.color}; margin-left:10px; width:280px; padding:25px; border-radius:35px; box-shadow:0 10px 30px rgba(0,0,0,0.05); flex-shrink:0;">
                             <div class="tag-group" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;" onclick="event.stopPropagation(); popTagPicker('${a.id}', '${ds}')">
                                 <span style="font-size:1.3rem; display:flex; align-items:center;">
                                     ${a.sex === 'M' ? '<i class="fas fa-mars" style="color:#007AFF;"></i>' : (a.sex === 'F' ? '<i class="fas fa-venus" style="color:#FF2D55;"></i>' : '')}
@@ -1353,7 +1429,8 @@ function renderDay(ds) {
                         </div>`;
                 }).join('');
             } else {
-                row.innerHTML = label + `<div style="flex:1; height:40px; margin-left:15px; border-bottom:1px solid #f2f2f7;"></div>`;
+                // 🚀 確保沒預約時，時間標籤依然在左側對齊
+                row.innerHTML = label + `<div style="width:280px; height:40px; margin-left:10px; border-bottom:1px solid #f2f2f7; flex-shrink:0;"></div>`;
             }
             lane.appendChild(row);
         });
@@ -1428,17 +1505,19 @@ function pickSug(n, p, s, boxId) {
 }
 
 // ==========================================================================
-// --- 【V318 專屬空間：設定頁面奢華大腦 - 終極整合版】 ---
+// --- 【V318 設定頁面：極簡穩定版（全功能開放）】 ---
 // ==========================================================================
-// --- 【Aether Flow: renderSet 旗艦美化版】 ---
 function renderSet() {
     const container = document.getElementById('set-content-container');
     if(!container) return;
+    
+    // 獲取目前店號資訊
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth')) || { id: "未綁定" };
 
-    // 1. 先畫出基礎設定清單
+    // 1. 渲染純粹的 HTML 結構（移除所有 admin 判斷門檻）
     container.innerHTML = `
         <div style="padding-top:20px;" id="set-main-list">
+            <!-- 品牌與識別 -->
             <div class="set-drawer-trigger" data-action="rename">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-signature"></i></div>
@@ -1451,11 +1530,12 @@ function renderSet() {
                     <div style="color:var(--gold); font-weight:900; font-size:1.3rem;">${store.storeName || '專屬空間'}</div>
                 </div>
             </div>
-<div class="set-drawer-trigger" data-action="time">
+
+            <!-- 營業時間 -->
+            <div class="set-drawer-trigger" data-action="time">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box" style="background:var(--gold);"><i class="fas fa-clock"></i></div>
                     <div>
-                    
                         <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">營業時間設定</div>
                         <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">BUSINESS HOURS</div>
                     </div>
@@ -1463,30 +1543,7 @@ function renderSet() {
                 <div style="color:var(--gold); font-weight:900; font-size:1.3rem;">${store.startH || '11:00'} - ${store.endH || '19:00'}</div>
             </div>
 
-            <div class="set-drawer-trigger" data-action="style">
-                <div style="display:flex; align-items:center; pointer-events:none;">
-                    <div class="set-icon-box" style="background:var(--gold);"><i class="fas fa-paint-brush"></i></div>
-                    <div>
-                        <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">介面樣式主題</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">UI STYLE</div>
-                    </div>
-                </div>
-                <div style="color:#aaa; font-weight:700;">旗艦毛玻璃</div>
-            </div>
-
-            <div class="set-drawer-trigger" data-action="offday">
-                <div style="display:flex; align-items:center; pointer-events:none;">
-                    <div class="set-icon-box"><i class="fas fa-calendar-times"></i></div>
-                    <div>
-
-
-                        <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">店舖排休與配色</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">STORE SCHEDULE</div>
-                    </div>
-                </div>
-                <div style="color:#aaa; font-weight:700;">${(store.offDays || []).length} 天</div>
-            </div>
-
+            <!-- 人員管理 -->
             <div class="set-drawer-trigger" data-action="sty">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-user-tie"></i></div>
@@ -1498,6 +1555,7 @@ function renderSet() {
                 <div style="color:#aaa; font-weight:700;">${store.stylists.length} 位</div>
             </div>
 
+            <!-- 服務管理 -->
             <div class="set-drawer-trigger" data-action="tag">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-concierge-bell"></i></div>
@@ -1509,6 +1567,7 @@ function renderSet() {
                 <div style="color:#aaa; font-weight:700;">${store.tags.length} 個</div>
             </div>
 
+            <!-- 支付標籤 -->
             <div class="set-drawer-trigger" data-action="paytag">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-wallet"></i></div>
@@ -1519,114 +1578,98 @@ function renderSet() {
                 </div>
                 <div style="color:#aaa; font-weight:700;">${(store.payTagsDef || []).length} 種</div>
             </div>
-            
+
+            <!-- 雲端同步區塊 -->
             <div style="margin-top:60px; padding-top:30px; border-top:1px dashed #eee;">
                 <p style="font-weight:900; color:#888; margin-bottom:20px;"># 雲端同步與數據安全</p>
-                <div style="background:rgba(212,175,55,0.05); border:1px solid rgba(212,175,55,0.2); border-radius:30px; padding:25px; margin-bottom:20px;">
-                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding:0 5px;">
-    <span style="font-weight:900; color:#1d1d1f; font-size:1.1rem;">目前店號：</span>
-    <span style="color:var(--gold); font-weight:900; font-size:1.1rem; line-height:1;">${auth.id}</span>
-</div>
-<div id="trial-timer-zone"></div>
-                    <button class="luxe-btn" style="width:100%; height:50px; background:#ffefef; color:#ff4d4d; border:none; margin-top:10px;" id="btn-reauth-real">重新激活系統</button>
-                </div>
-                <div id="master-admin-zone"></div>
-            </div>
-         
-
-            <div style="margin-top:80px; padding:40px 20px; text-align:center; background:rgba(0,0,0,0.02); border-radius:40px; border:1px dashed rgba(212,175,55,0.3);">
-                <div style="width:60px; height:60px; background:var(--gold); border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; margin:0 auto 15px; box-shadow:0 10px 20px rgba(212,175,55,0.2);">
-                    <i class="fab fa-line" style="font-size:2rem;"></i>
-                </div>
-                <div style="font-weight:900; font-size:1.1rem; color:#1d1d1f; letter-spacing:1px;">聯繫創作者購買授權</div>
-                <div style="font-size:0.8rem; color:#aaa; font-weight:700; margin-bottom:20px;">V318 QUANTUM DESIGN</div>
-                
-                <div style="background:#fff; padding:15px 25px; border-radius:25px; display:inline-flex; align-items:center; gap:12px; box-shadow:0 5px 15px rgba(0,0,0,0.03); border:1.5px solid #f2f2f7;">
-                    <span style="font-weight:900; color:#06C755;">LINE ID :</span>
-                    <span style="font-weight:900; color:#1d1d1f; font-size:1.2rem;"> 051873 </span>
-                </div>
-                
-                <div style="margin-top:20px;">
-                    <a href="https://line.me/ti/p/5RX7mKrvsa" target="_blank" style="text-decoration:none;">
-                        <button class="luxe-btn" style="width:200px; height:55px; background:#06C755 !important; color:#fff !important; border:none; border-radius:30px; font-weight:900; font-size:1rem;">
-                            <i class="fas fa-comment-dots"></i> 一鍵加好友
-                        </button>
-                    </a>
-                </div>
-                <p style="font-size:0.75rem; color:#ccc; margin-top:20px; font-weight:700;">© 2026 小刀工作室 版權所有</p>
-            </div>
-        </div>`;  
-
-    // . 🚀 [關鍵門禁] 只有 admin 才能解鎖最高權限按鈕
-    const authLocal = JSON.parse(localStorage.getItem('v318_booking_auth'));
-    
-   // --- 🚀 副授權管理區塊 (替換原本 1207 行後的內容) ---
-if (authLocal && authLocal.role === 'admin') {
-    const adminZone = document.getElementById('master-admin-zone');
-    if (adminZone) {
-        adminZone.innerHTML = `
-            <div style="margin-top:40px; border-top:2px solid #f2f2f7; padding-top:20px;">
-                <p style="font-weight:900; color:#888; margin-bottom:15px;">👤 副授權人員管理</p>
-                <div id="sub-auth-list" style="margin-bottom:20px;">
-                    <div style="text-align:center; color:#ccc; padding:20px;">載入人員名單中...</div>
-                </div>
-                <button class="luxe-btn" style="width:100%; height:60px; background:#1d1d1f; color:#fff; border-radius:30px; font-weight:900;" onclick="popCreateSubKey()">
-                    <i class="fas fa-user-plus"></i> 生成新的副授權 (給員工)
-                </button>
-                <div style="margin-top:20px;">
-                    <button class="luxe-btn" style="width:100%; height:50px; background:#fff; color:#ff4d4d; border:1px solid #ff4d4d; border-radius:30px; font-size:0.8rem;" onclick="reAuthMaster()">
-                        <i class="fas fa-exclamation-triangle"></i> 撤銷全店授權 (含主裝置)
+                <div style="background:rgba(212,175,55,0.05); border:1px solid rgba(212,175,55,0.2); border-radius:30px; padding:25px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                        <span style="font-weight:900; color:#1d1d1f; font-size:1.1rem;">目前店號：</span>
+                        <span style="color:var(--gold); font-weight:900; font-size:1.1rem;">${auth.id}</span>
+                    </div>
+                    <button class="luxe-btn" style="width:100%; height:50px; background:#fff; color:#ff4d4d; border:1px solid #ff4d4d; border-radius:30px; margin-top:10px; font-size:0.9rem; font-weight:900;" id="btn-reauth-real">
+                        解除綁定 / 重新激活系統
                     </button>
                 </div>
-            </div>`;
-        loadSubKeys(); // 🚀 這行很重要，確保畫面出來後會去抓名單
-    }
-}
-    const list = document.getElementById('set-main-list');
-    list.onclick = (e) => {
-        const item = e.target.closest('.set-drawer-trigger');
-        if(!item) return;
-        const action = item.dataset.action;
-        e.preventDefault(); e.stopPropagation();
-       if(action === 'rename') popRenameStore();
-        if(action === 'time') popTimeDrawer();   // 🚀 補這行：讓營業時間按鈕能點開
-        if(action === 'style') popStyleDrawer(); // 🚀 補這行：讓樣式主題按鈕能點開
-        if(action === 'offday') popOffDayDrawer();
-        if(action === 'sty') popStyDrawer();
-        if(action === 'tag') popTagDrawer();
-        if(action === 'paytag') popPayTagDrawer();
-    };
-    
-    const reBtn = document.getElementById('btn-reauth-real');
-    if(reBtn) reBtn.onclick = (e) => { e.stopPropagation(); reAuth(); };
+            </div>
 
-    // 🚀 倒計時邏輯：自動去雲端看這把鑰匙還剩多久
-    const checkKeyTimer = async () => {
-        const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-        if (!auth?.key) return;
-        try {
-            const keySnap = await db.collection("LicenseKeys_Booking").doc(auth.key).get();
-            if (keySnap.exists && keySnap.data().expire) {
-                const diff = keySnap.data().expire - new Date().getTime();
-                if (diff > 0) {
-                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                    const zone = document.getElementById('trial-timer-zone');
-                    if (zone) {
-                        zone.innerHTML = `
-                            <div style="margin-top:10px; padding:12px; background:rgba(255,77,77,0.05); border-radius:15px; border:1px solid #ff4d4d; display:flex; justify-content:space-between; align-items:center;">
-                                <span style="color:#ff4d4d; font-weight:900; font-size:0.8rem;"><i class="fas fa-hourglass-half"></i> 試用剩餘：</span>
-                                <span style="color:#1d1d1f; font-weight:900; font-size:0.9rem;">${days}天 ${hours}小時</span>
-                            </div>`;
+            <!-- 聯絡創作者 -->
+            <div style="margin-top:50px; padding:40px 20px; text-align:center;">
+                <div style="font-weight:900; font-size:1.1rem; color:#1d1d1f;">AETHER V318 QUANTUM</div>
+                <p style="font-size:0.8rem; color:#ccc;">© 2026 小刀工作室 版權所有</p>
+            </div>
+        </div>
+        
+        <!-- 🔐 系統權限管理 (新增在最底下) -->
+        <div style="margin: 20px 0; padding: 20px; background: rgba(0,0,0,0.03); border-radius: 25px;">
+            <p style="font-weight: 900; color: #888; margin-bottom: 15px; font-size: 0.8rem;"># 系統權限管理</p>
+            
+            <div class="set-drawer-trigger" onclick="generateLicenseTrig()">
+                <div style="display: flex; align-items: center;">
+                    <div class="set-icon-box" style="background: #1d1d1f; color: white; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                        <i class="fas fa-key"></i>
+                    </div>
+                    <div style="font-weight: 900;">生成主授權金鑰</div>
+                </div>
+            </div>
+
+            <div class="set-drawer-trigger" onclick="generateSubLicense()" style="margin-top: 15px;">
+                <div style="display: flex; align-items: center;">
+                    <div class="set-icon-box" style="background: #555; color: white; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div style="font-weight: 900;">生成副授權 (員工用)</div>
+                </div>
+            </div>
+        </div>
+        `;
+
+    // 🎯 2. 核心修正：使用 setTimeout 確保 HTML 渲染後才綁定事件，防止失效
+    setTimeout(() => {
+        // 綁定所有抽屜按鈕
+        const list = document.getElementById('set-main-list');
+        if (list) {
+            list.onclick = (e) => {
+                const item = e.target.closest('.set-drawer-trigger');
+                if (!item) return;
+                const action = item.dataset.action;
+                
+                // 直接執行對應功能，不設門檻
+                if (action === 'rename') popRenameStore();
+                if (action === 'time') popTimeDrawer();
+                if (action === 'sty') popStyDrawer();
+                if (action === 'tag') popTagDrawer();
+                if (action === 'paytag') popPayTagDrawer();
+                if (action === 'style') popStyleDrawer();
+                if (action === 'offday') popOffDayDrawer();
+            };
+        }
+
+        // 綁定登出/重新激活按鈕
+        const reBtn = document.getElementById('btn-reauth-real');
+        if (reBtn) {
+            reBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                Swal.fire({
+                    title: '確定要解除綁定嗎？',
+                    text: '這將清除目前的本機快取並重新驗證店號。',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#1d1d1f',
+                    confirmButtonText: '確定解除',
+                    cancelButtonText: '取消'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        localStorage.removeItem('v318_booking_auth');
+                        localStorage.removeItem('SALON_LOCK_V318');
+                        location.reload();
                     }
-                }
-            }
-        } catch(e) { console.log("Timer Error:", e); }
-    };
-    checkKeyTimer();
-} // 👈 這是 renderSet 真正的結束標籤，要保留喔！
-
-
+                });
+            };
+        }
+    }, 60);
+}
 // --- 【Aether Flow：排休抽屜旗艦版 - 恢復黑灰按鈕美學】 ---
 function popOffDayDrawer() {
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
@@ -1907,144 +1950,6 @@ function popTimeDrawer() {
         } 
     });
 }
-
-// --- 🚀 副授權管理系統核心 (已移出至正確作用域，保證點擊有反應) ---
-
-// A. 載入屬於這間店的所有副授權
-async function loadSubKeys() {
-    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-    const listArea = document.getElementById('sub-auth-list');
-    if (!listArea) return;
-
-    try {
-        // 抓取 LicenseKeys_Booking 集合中，屬於這間店 (salonId) 且角色是 staff 的鑰匙
-        const snap = await db.collection("LicenseKeys_Booking")
-            .where("salonId", "==", auth.id)
-            .where("role", "==", "staff")
-            .get();
-
-        if (snap.empty) {
-            listArea.innerHTML = `<div style="text-align:center; color:#ccc; padding:20px; background:#f9f9fb; border-radius:20px;">目前尚無副授權人員</div>`;
-            return;
-        }
-
-        listArea.innerHTML = snap.docs.map(doc => {
-            const data = doc.data();
-            return `
-                <div style="display:flex; justify-content:space-between; align-items:center; background:#fff; padding:15px 20px; border-radius:25px; margin-bottom:10px; border:1px solid #f2f2f7; box-shadow:0 4px 10px rgba(0,0,0,0.02);">
-                    <div>
-                        <div style="font-weight:900; color:#1d1d1f;">${data.ownerName || '未命名人員'}</div>
-                        <div style="font-size:0.7rem; color:#aaa;">代碼: ${doc.id} | 狀態: ${data.status === 'used' ? '🟢 已登入' : '⚪ 未使用'}</div>
-                    </div>
-                    <button onclick="revokeSubKey('${doc.id}', '${data.ownerName}')" style="background:#ffefef; color:#ff4d4d; border:none; padding:8px 15px; border-radius:15px; font-weight:900; font-size:0.8rem;">
-                        撤銷
-                    </button>
-                </div>`;
-        }).join('');
-    } catch (e) {
-        console.error("載入名單失敗", e);
-    }
-}
-
-// B. 生成副鑰彈窗 (限制上限 5 個) - 旗艦穩定版
-async function popCreateSubKey() {
-    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-    if (!auth || !auth.id) return;
-
-    try {
-        // 🛡️ 數量檢查：先查詢雲端該店號下已生成的副授權數量
-        const snap = await db.collection("LicenseKeys_Booking")
-            .where("salonId", "==", auth.id)
-            .where("role", "==", "staff")
-            .get();
-
-        // 🚀 攔截邏輯：若數量已達 5 個則跳出警告並停止執行
-        if (snap.size >= 5) {
-            Swal.fire({
-                icon: 'warning',
-                title: '已達授權上限',
-                html: `<p style="font-weight:900; color:#888;">為了數據安全，每間店鋪最多僅能生成 <span style="color:#ff4d4d;">5</span> 把副授權。<br><br>請先撤銷不需要的人員權限後再行生成。</p>`,
-                confirmButtonColor: '#1d1d1f'
-            });
-            return; 
-        }
-
-        // --- 以下為原有的生成邏輯 ---
-        const { value: name } = await Swal.fire({
-            title: '生成副授權',
-            input: 'text',
-            inputLabel: '請輸入人員姓名 (如: 王小明)',
-            inputPlaceholder: '之後您可依姓名撤銷其權限',
-            confirmButtonColor: '#1d1d1f',
-            showCancelButton: true,
-            cancelButtonText: '取消',
-            reverseButtons: true
-        });
-
-        if (name) {
-            // 生成 6 位大寫隨機碼
-            const newKey = "BOK-SUB-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-            
-            // 🚀 寫入 Firebase
-            await db.collection("LicenseKeys_Booking").doc(newKey).set({
-                status: "unused",
-                role: "staff",          // 強制標記為員工副鑰
-                salonId: auth.id,       // 綁定主裝置的店號
-                ownerName: name,        // 記錄人員名稱
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-
-            // 🚀 顯示成功視窗 (賈伯斯金石配色)
-            Swal.fire({
-                title: '副授權生成成功',
-                html: `請讓 <b>${name}</b> 在其裝置輸入：<br><h2 style="color:#D4AF37; margin:15px 0; letter-spacing:2px; font-size:2.2rem; font-weight:900;">${newKey}</h2>`,
-                icon: 'success',
-                confirmButtonColor: '#1d1d1f'
-            });
-
-            // 🚀 延遲刷新列表，確保雲端資料已寫入成功
-            setTimeout(() => { 
-                if (typeof loadSubKeys === 'function') loadSubKeys(); 
-            }, 800); 
-        }
-    } catch (e) {
-        console.error("生成檢查失敗", e);
-        Swal.fire('系統錯誤', '無法連接雲端驗證數量，請檢查網路。', 'error');
-    }
-}
-// C. 單獨撤銷某位人員 - 旗艦穩定版
-async function revokeSubKey(keyId, name) {
-    const res = await Swal.fire({
-        title: `確定撤銷 ${name} 的權限？`,
-        text: "撤銷後該裝置將立即斷線且無法再次登入。",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ff4d4d',
-        confirmButtonText: '確定撤銷',
-        cancelButtonText: '取消',
-        reverseButtons: true
-    });
-
-    if (res.isConfirmed) {
-        // 🚀 直接從雲端刪除該金鑰
-        await db.collection("LicenseKeys_Booking").doc(keyId).delete();
-        
-        // 🚀 撤銷成功的視覺回饋
-        Swal.fire({
-            icon: 'success',
-            title: '已解除授權',
-            text: `${name} 的權限已從雲端移除`,
-            timer: 1500,
-            showConfirmButton: false,
-            background: '#fff'
-        });
-
-        // 🚀 撤銷後也延遲一下再刷新列表，保證畫面準確
-        setTimeout(() => { 
-            if (typeof loadSubKeys === 'function') loadSubKeys(); 
-        }, 500); 
-    }
-}
 // --- 【品牌自定義大腦：一鍵更名系統】 ---
 async function popRenameStore() {
     const { value: newName } = await Swal.fire({
@@ -2178,20 +2083,6 @@ async function addPayTag() {
         store.payTagsDef.push({ id: 'PT'+Date.now(), name: n, color: '#D4AF37' }); 
         await saveS(); renderSet(); 
     }
-}
-
-async function editPayTag(id, old) {
-    const {value: n} = await Swal.fire({ title: '修改標籤名稱', input: 'text', inputValue: old });
-    if(n) { store.payTagsDef.find(x => x.id === id).name = n; await saveS(); renderSet(); }
-}
-
-function delPayTag(id) {
-    Swal.fire({ title: '確定刪除？', icon: 'warning', showCancelButton: true }).then(async (res) => {
-        if(res.isConfirmed) {
-            store.payTagsDef = store.payTagsDef.filter(x => x.id !== id);
-            await saveS(); renderSet();
-        }
-    });
 }
 
 // --- 【中文導航：標籤選色店員 - 修正抓錯對象問題】 ---
@@ -2406,6 +2297,43 @@ function initAll() {
     initMonth(); renderCli(); fillStySelect(); renderSet(); 
 }
 
+async function checkSubscription() {
+    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    if (!auth || !auth.id) return;
+
+    try {
+        // 從 Firebase 抓取最新的店號資訊
+        const doc = await db.collection("Salons").doc(auth.id).get();
+        
+        if (doc.exists) {
+            const data = doc.data();
+            const now = Date.now();
+            const expiry = data.expiryDate || 0; // 這裡是你在雲端設定的到期時間戳
+
+            // 🚀 如果現在時間超過了到期時間
+            if (now > expiry) {
+                showExpiryAlert();
+            }
+        }
+    } catch (e) {
+        console.error("授權檢查失敗", e);
+    }
+}
+
+function showExpiryAlert() {
+    Swal.fire({
+        title: '授權已到期',
+        text: '請聯繫管理員續費以繼續使用系統。',
+        icon: 'error',
+        allowOutsideClick: false,
+        confirmButtonText: '聯絡開發者',
+        confirmButtonColor: '#ff3b30' // iOS 警示紅
+    }).then(() => {
+        // 點擊後可以引導到你的 LINE 或通話
+        window.location.href = "https://line.me/ti/p/你的ID";
+    });
+}
+
 // ==========================================================================
 // --- 🚀 V318 預約紀錄大腦：今日戰報總結版 (不減反增版) ---
 // ==========================================================================
@@ -2501,19 +2429,6 @@ async function confirmDeleteFromLog(id, ds) {
     }
 }
 
-// 2. 金額快速填寫 (解鎖數字鍵盤)
-async function popPriceEdit(aptId, ds) {
-    const a = store.appointments.find(x => String(x.id) === String(aptId));
-    if(!a) return;
-    const { value: price } = await Swal.fire({
-        title: '補填消費金額', input: 'tel', inputValue: a.price || "", 
-        confirmButtonColor: '#1d1d1f', showCancelButton: true,
-        didOpen: () => { const input = Swal.getInput(); if (input) { input.setAttribute('inputmode', 'numeric'); input.focus(); } }
-    });
-    if (price !== undefined) { a.price = price; await saveS(); renderDay(ds); }
-}
-
-
 // --- Aether Flow: 補填金額大腦 (大師修正：保證能打字＋跳數字鍵盤) ---
 async function popPriceEdit(aptId, ds) {
     const a = store.appointments.find(x => String(x.id) === String(aptId));
@@ -2541,359 +2456,204 @@ async function popPriceEdit(aptId, ds) {
     }
 }
 
-// ==========================================================================
-// --- S8: 鋼鐵門禁與金鑰生成 ---
-// ==========================================================================
 
-
+// ==========================================================================
+// 🚀 V318 授權守門員：【自動開墾通關版】
+// ==========================================================================
 async function checkLicense() {
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-    const now = new Date().getTime();
-
-    // ---------------------------------------------------------
-    // 🛡️ 第一部分：針對「已激活」用戶的 24 小時強制連網檢查
-    // ---------------------------------------------------------
-    if (auth && auth.key && auth.id !== "未綁定") {
-        const lastCheck = parseInt(localStorage.getItem('v318_last_cloud_check') || 0);
-        const offlineLimit = 24 * 60 * 60 * 1000; // 🚀 正確設定：1 天 (24小時)
-
-        // 🎯 判斷：如果超過 1 天沒驗證，且現在處於離線狀態
-        if (now - lastCheck > offlineLimit && !window.navigator.onLine) {
-            executeSystemLockdown("安全保護：系統已超過 24 小時未連網驗證，請開啟網路以繼續使用。");
-            return;
-        }
-
-        // 🎯 判斷：如果有網路，主動去雲端刷新授權狀態
-        if (window.navigator.onLine) {
-            try {
-                const doc = await db.collection("LicenseKeys_Booking").doc(auth.key).get();
-                if (doc.exists) {
-                    const keyData = doc.data();
-                    
-                    // 1. 檢查是否已被撤銷或過期
-                    if (keyData.expire && now > keyData.expire) {
-                        executeSystemLockdown("您的授權已屆滿，請聯繫管理員續費。");
-                        return;
-                    }
-
-                    // 2. 驗證通過，存下這次成功驗證的時間
-                    localStorage.setItem('v318_last_cloud_check', now.toString());
-                    
-                    // 3. 如果原本被鎖著，現在自動解鎖
-                    const mask = document.getElementById('security-mask');
-                    if (mask) {
-                        mask.remove();
-                        document.querySelectorAll('.nav, .fab, .header').forEach(el => el.style.display = 'flex');
-                        window.IS_LOCKED_VACUUM = false;
-                    }
-
-                    // 4. 正常跑雲端同步
-                    pullFromCloud(); 
-                    return; // 驗證完畢，直接結束函數
-                } else {
-                    // 雲端找不到這把鑰匙（可能被你刪了）
-                    executeSystemLockdown("授權金鑰無效或已被撤銷。");
-                    return;
-                }
-            } catch(e) {
-                console.log("☁️ 雲端定期驗證靜默失敗，等待下次巡邏...");
-            }
-        } else {
-            // 有激活但還沒到 24 小時限制，且目前離線，則維持現狀繼續使用
-            return;
-        }
-    }
-
-    // ---------------------------------------------------------
-    // 🛡️ 第二部分：針對「未激活」用戶的溫柔提醒模式 (你原本的邏輯)
-    // ---------------------------------------------------------
-    if (!auth || !auth.key || !auth.id || auth.id === "未綁定") {
-        console.log("🛡️ 安全門禁：進入溫柔提醒模式...");
-        
-        const { value: res, dismiss } = await Swal.fire({
-            title: '歡迎使用 Aether V318',
-            html: `
-                <div style="padding:10px;">
-                    <p style="font-size:0.9rem; color:#888; margin-bottom:15px;">您目前處於「單機模式」，激活後可開啟雲端同步。</p>
-                    <input id="sw-key" class="swal2-input" style="width:80%; margin:10px auto;" placeholder="輸入授權金鑰">
-                    <input id="sw-id" class="swal2-input" style="width:80%; margin:10px auto;" placeholder="確認店號 (如：A01)">
-                </div>`,
-            showCancelButton: true,
-            cancelButtonText: '先體驗看看',
+    
+    // 1. 若完全沒有綁定資訊，彈出輸入框
+    if (!auth || !auth.id || auth.id === "未綁定") {
+        const { value: shopID } = await Swal.fire({
+            title: '歡迎使用 專屬空間',
+            text: '請輸入您的專屬店號以啟用 (新店號將自動初始化)',
+            input: 'text',
             confirmButtonColor: '#1d1d1f',
-            confirmButtonText: '立即激活系統',
-            allowOutsideClick: true,
-            preConfirm: () => {
-                const key = document.getElementById('sw-key').value.trim();
-                const id = document.getElementById('sw-id').value.trim();
-                if (!key || !id) {
-                    Swal.showValidationMessage('欲激活請填寫完整，或點取消先進入。');
-                    return false;
-                }
-                return { key, id };
-            }
+            allowOutsideClick: false,
+            backdrop: `rgba(0,0,0,0.9)`
         });
 
-        if (res && res.key) {
-            try {
-                const doc = await db.collection("LicenseKeys_Booking").doc(res.key).get();
-                if (doc.exists) {
-                    const keyData = doc.data();
-                    if (keyData.status !== "unused") {
-                        await Swal.fire('激活失敗', '此金鑰已被佔用', 'error');
-                        return checkLicense();
-                    }
-                    
-                    let updateData = { status: "used", activatedAt: firebase.firestore.FieldValue.serverTimestamp() };
-                    if (keyData.role === 'staff') {
-                        if (res.id !== keyData.salonId) {
-                            await Swal.fire('店號不符', `此金鑰僅限店號「${keyData.salonId}」`, 'error');
-                            return checkLicense();
-                        }
-                    } else {
-                        updateData.salonId = res.id;
-                    }
+       if (shopID) {
+            // 1. 標準化店號（去空白、轉大寫）
+            const cleanID = shopID.trim().toUpperCase();
+            
+            // 2. 建立本地授權物件
+            const newAuth = { 
+                key: 'PERMANENT', 
+                id: cleanID, 
+                role: 'admin' 
+            };
+            
+            // 3. 存入瀏覽器快取
+            localStorage.setItem('v318_booking_auth', JSON.stringify(newAuth));
+            
+            // 🚀 關鍵動作：在跳轉前先發送裝置訊號給雲端
+            // 使用 await 確保雲端收到後才執行 reload
+            await recordDeviceStatus(cleanID); 
 
-                    await db.collection("LicenseKeys_Booking").doc(res.key).update(updateData);
-
-                    // 🚀 激活成功，同步存下第一次驗證時間
-                    localStorage.setItem('v318_last_cloud_check', now.toString());
-
-                    const finalAuth = { key: res.key, id: res.id, role: keyData.role || 'staff', expire: keyData.expire || null };
-                    localStorage.setItem('v318_booking_auth', JSON.stringify(finalAuth));
-
-                    await Swal.fire({ icon: 'success', title: '系統激活成功', timer: 1500, showConfirmButton: false });
-                    location.reload(); 
-                } else {
-                    await Swal.fire('驗證失敗', '找不到此授權代碼', 'error');
-                    return checkLicense();
-                }
-            } catch(e) {
-                console.error("激活錯誤:", e);
-                await Swal.fire('連線異常', '請檢查網路或 Firebase 設定。', 'error');
-                return checkLicense();
-            }
-        } 
-        else if (dismiss === Swal.DismissReason.cancel || dismiss === Swal.DismissReason.backdrop) {
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
-            Toast.fire({ icon: 'info', title: '已進入單機試用模式' });
+            // 4. 重新整理頁面，啟動系統
+            location.reload();
         }
+        return;
     }
-}
-// --- 🚀 V318 管理員長按生成引擎 (漏洞修補版) ---
-let pressTimer;
-const adminTrigger = document.getElementById('admin-trigger');
 
-if(adminTrigger) {
-    const startPress = (e) => {
-        pressTimer = setTimeout(async () => {
-            const { value: pw } = await Swal.fire({ 
-                title: '管理員驗證', 
-                input: 'password', 
-                inputPlaceholder: '請輸入管理密碼',
-                confirmButtonColor: '#1d1d1f'
-            });
+    // 2. 在線狀態下的「權限」校驗（盯著管理後台集合）
+    if (window.navigator.onLine) {
+        try {
+            // 🚀 關鍵：讀取 LicenseKeys_Booking 而不是 Salons
+            const licenseSnap = await db.collection("LicenseKeys_Booking").doc(auth.id).get();
+            
+            if (licenseSnap.exists) {
+                const config = licenseSnap.data();
+                const now = Date.now();
 
-            if (pw === '518') {
-                const { value: role } = await Swal.fire({
-                    title: '請選擇金鑰授權等級',
-                    input: 'radio',
-                    inputOptions: {
-                        'admin': '👑 店長 (永久主鑰)',
-                        'trial': '⏳ 試用 (自定天數)' 
-                    },
-                    inputValue: 'admin',
-                    confirmButtonColor: '#1d1d1f'
-                });
+                // 🛑 檢查封鎖狀態 (你在後台按禁止，這裡就會觸發)
+                if (config.status === "blocked") {
+                    executeSystemLockdown("此店號已被管理員封鎖，請聯繫小刀。");
+                    return;
+                }
 
-                if (role) {
-                    let expireTimestamp = null;
-                    let displayDays = "永久授權";
+                // 🛑 檢查過期時間
+                if (config.expiryDate && now > config.expiryDate) {
+                    executeSystemLockdown("您的系統使用期限已屆滿，請聯繫續費。");
+                    return;
+                }
 
-                    if (role === 'trial') {
-    // 🚀 1. 先選擇時間單位
-    const { value: unit } = await Swal.fire({
-        title: '選擇試用時間單位',
-        input: 'radio',
-        inputOptions: {
-            'day': '天 (正式發佈用)',
-            'hour': '小時 (快速測試用)',
-            'min': '分鐘 (極速開發用)'
-        },
-        inputValue: 'day',
-        confirmButtonColor: '#1d1d1f'
-    });
+                // 解除 UI 鎖定 (如果之前被鎖過)
+                const mask = document.getElementById('security-mask');
+                if (mask) {
+                    mask.remove();
+                    document.querySelectorAll('.nav, .fab, .header').forEach(el => el.style.display = 'flex');
+                    window.IS_LOCKED_VACUUM = false;
+                }
+            }
+            
+            // 權限通過，執行資料同步
+            pullFromCloud(); 
 
-    if (!unit) return;
-
-    // 🚀 2. 輸入數值
-    const { value: amount } = await Swal.fire({
-        title: `設定試用${unit === 'day' ? '天數' : (unit === 'hour' ? '小時' : '分鐘')}`,
-        input: 'number',
-        inputValue: unit === 'day' ? 30 : 1,
-        confirmButtonColor: '#1d1d1f'
-    });
-
-    if (!amount) return;
-
-    const d = new Date();
-    let ms = 0;
-    if (unit === 'day') {
-        ms = parseInt(amount) * 24 * 60 * 60 * 1000;
-        displayDays = amount + " 天試用期";
-    } else if (unit === 'hour') {
-        ms = parseInt(amount) * 60 * 60 * 1000;
-        displayDays = amount + " 小時試用期";
+        } catch(e) {
+            console.error("🔒 權限校驗異常", e);
+            pullFromCloud(); // 異常時保守執行
+        }
     } else {
-        ms = parseInt(amount) * 60 * 1000;
-        displayDays = amount + " 分鐘試用期";
-    }
-    
-    expireTimestamp = d.getTime() + ms;
-}
-                    const newKey = "BOK-" + Math.random().toString(36).substring(2, 10).toUpperCase();
-
-                    // 🚀 主鑰匙存檔：不預設 salonId，讓使用者在激活時自己定義
-                    await db.collection("LicenseKeys_Booking").doc(newKey).set({
-                        status: "unused",
-                        role: 'admin',
-                        expire: expireTimestamp, 
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-                    });
-
-                    Swal.fire({
-                        title: '成功生成預約金鑰',
-                        html: `
-                            <div style="background:rgba(212,175,55,0.1); padding:15px; border-radius:20px; margin-bottom:15px; font-weight:900; color:var(--gold);">
-                                授權期限：${displayDays}
-                            </div>
-                            <h2 style="color:#1d1d1f; font-weight:900; margin: 25px 0; letter-spacing:2px; font-size:2.2rem;">${newKey}</h2>
-                            <button onclick="copyKey('${newKey}')" class="luxe-btn" style="width:100%; height:65px; background:#1d1d1f; color:#fff; border:none; border-radius:35px; cursor:pointer; font-weight:900;">
-                                <i class="fas fa-copy"></i> 點我直接複製
-                            </button>
-                        `,
-                        showConfirmButton: false
-                    });
-                }
-            } else if(pw) {
-                Swal.fire('驗證碼錯誤', '請重新輸入管理代碼', 'error');
-            }
-        }, 3000);
-    };
-
-    const cancelPress = () => clearTimeout(pressTimer);
-    adminTrigger.addEventListener('touchstart', startPress);
-    adminTrigger.addEventListener('mousedown', startPress);
-    adminTrigger.addEventListener('touchend', cancelPress);
-    adminTrigger.addEventListener('mouseup', cancelPress);
-    adminTrigger.addEventListener('mouseleave', cancelPress);
-}
-
-/// 複製功能的鋼鐵大腦 (強效相容版)
-function copyKey(text) {
-    // 1. 建立一個隱藏的輸入框
-    const dummy = document.createElement("input");
-    document.body.appendChild(dummy);
-    dummy.value = text;
-    
-    // 2. 選取並執行複製命令
-    dummy.select();
-    dummy.setSelectionRange(0, 99999); // 支援手機
-    
-    try {
-        const successful = document.execCommand('copy');
-        document.body.removeChild(dummy);
-        
-        if (successful) {
-            // 3. 跳出成功的視覺回饋，讓你知道真的「複製成功」了！
-            Swal.fire({
-                icon: 'success',
-                title: '🎉 複製成功！',
-                text: '金鑰：' + text + ' 已存入剪貼簿',
-                timer: 1500,
-                showConfirmButton: false,
-                background: '#fff',
-                backdrop: `rgba(212, 175, 55, 0.2)` // 淡淡的金光
-            });
-        }
-    } catch (err) {
-        document.body.removeChild(dummy);
-        Swal.fire('複製失敗', '請手動選取文字複製', 'error');
+        pullFromCloud(); // 離線模式
     }
 }
-
 // ==========================================================================
 // --- 🚀 V318 旗艦開機程序：含背景安全監控與防護攔截 ---
 // ==========================================================================
 window.addEventListener('load', async () => {
-    // 1. 先刷出本地資料 (確保離線時也能看見最後快取)
+    console.log("🚀 Aether V318 引擎發動中...");
+
+    // 1. 【物理預熱】立即更新 UI 基礎框架（顯示本機最後快取）
     updateStoreUI(); 
     initMonth();
-    renderCli();
     
-    // 初始化月份選擇器
+    // 初始化月份選擇器數值
     const mPicker = document.getElementById('m-picker');
-    if(mPicker) mPicker.value = new Date().toISOString().slice(0,7);
-    
-    // 2. 背景去雲端搬最新資料 (確保資料一致性)
-    await pullFromCloud(); 
-    
-    // 3. 搬完資料後，再次刷新 UI 呈現最新狀態
-    updateStoreUI();
-    initMonth();
-    
-    // 🎯 🚀 【V318 關鍵增補】：啟動 10 秒自動安全性監控
-    // 就算員工不刷新網頁，只要妳撤銷權限，10秒內系統會自動觸發黑色遮罩並鎖死
-    if (typeof startSecurityHeartbeat === 'function') {
-        startSecurityHeartbeat();
+    if (mPicker) mPicker.value = new Date().toISOString().slice(0, 7);
+
+    // 2. 【核心校驗】執行授權檢查 (這會觸發 pullFromCloud)
+    // 這裡使用 await 確保資料拉回來之後才進行下一步
+    try {
+        await checkLicense(); 
+    } catch (e) {
+        console.error("❌ 授權或同步過程發生異常", e);
     }
 
-    // 4. 最後檢查金鑰，若無授權則彈出強制登入
-    checkLicense();
+    // 3. 【數據落地】資料搬完後，第二次強制刷新 UI，確保最新數據顯示
+    updateStoreUI();
+    initMonth();
+    renderCli(); 
 
-   // --- 【以太流：精準防禦攔截器 - 彈窗輸入徹底解鎖版】 ---
+    // 4. 【安全掃描】網路守門員與員工模式檢查
+    if (typeof initNetworkGuard === 'function') initNetworkGuard();
+    checkAndApplyStaffMask();
+
+    // 5. 【手感補丁】解決 iOS 橡皮筋回彈與輸入框遮擋
     document.body.addEventListener('touchmove', function(e) {
-        // 🚀 核心解鎖：如果摸到的是彈窗內容、輸入框、或滾動區，允許操作
         if (e.target.closest('.swal2-container') || 
             e.target.closest('.content-scroll') || 
             e.target.closest('.lane-container') ||
             e.target.tagName === 'INPUT' || 
-            e.target.tagName === 'TEXTAREA' ||
-            e.target.tagName === 'SELECT') {
+            e.target.tagName === 'TEXTAREA') {
             return; 
         }
-        // 其餘空白處禁止 iOS 彈跳與亂滑
         if (e.cancelable) e.preventDefault();
     }, { passive: false });
 
-    console.log("Aether V318 系統核心啟動成功...");
+    console.log("✅ 系統渲染完成：以太流 (Aether Flow) 已就位");
+});
 
-// 🚀 V318 員工模式金額遮蔽補丁
-const authData = JSON.parse(localStorage.getItem('v318_booking_auth'));
-if (authData && authData.role === 'staff') {
-    applyStaffMask();
+// ==========================================================================
+// --- 🛠️ V318 核心補丁函數庫 (放在監聽器外，確保全局可用) ---
+// ==========================================================================
+
+// 🚀 員工模式判定
+function checkAndApplyStaffMask() {
+    const authData = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    if (authData && authData.role === 'staff') {
+        applyStaffMask();
+    }
 }
 
+// ==========================================================================
+// --- 🚀 斷網巡邏兵：防止斷網期間非法操作 (確保副裝置安全) ---
+// ==========================================================================
+function initNetworkGuard() {
+    window.addEventListener('offline', () => {
+        const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+        // 如果是員工(副裝置)，斷網瞬間立刻阻斷操作
+        if (auth && auth.role === 'staff') {
+            Swal.fire({
+                icon: 'error',
+                title: '網路連線中斷',
+                text: '安全偵測：副裝置必須保持連網以維持授權。',
+                showConfirmButton: false,
+                allowOutsideClick: false,
+                backdrop: `rgba(29,29,31,0.95)`
+            });
+            setTimeout(() => location.reload(), 2000);
+        } else {
+            // 店長裝置斷網，僅跳出提示，不鎖定
+            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+            Toast.fire({ icon: 'warning', title: '目前處於離線狀態' });
+        }
+    });
+
+    window.addEventListener('online', () => {
+        const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+        Toast.fire({ icon: 'success', title: '恢復網路連線，資料同步中' });
+        pullFromCloud(); // 恢復連線自動抓取最新雲端資料
+    });
+}
+
+// 🛡️ 執行金額遮蔽 CSS 注入
 function applyStaffMask() {
+    // 檢查是否已經注入過，避免重複添加
+    if (document.getElementById('staff-mask-style')) return;
+
     const maskStyle = document.createElement('style');
+    maskStyle.id = 'staff-mask-style';
     maskStyle.innerHTML = `
         /* 1. 隱藏預約卡片上的金額 */
         [onclick*="popPriceEdit"] { display: none !important; } 
         
         /* 2. 隱藏今日紀錄 (HistoryLog) 裡面的業績與金額 */
-        .swal2-html-container [style*="color:#06C755"] { display: none !important; } /* 金額 */
-        .swal2-html-container [style*="linear-gradient"] { display: none !important; } /* 今日業績戰報板 */
+        .swal2-html-container [style*="color:#06C755"] { display: none !important; } 
+        .swal2-html-container [style*="linear-gradient"] { display: none !important; } 
         
-        /* 3. 隱藏導航列的數據按鈕（選配，若想徹底不讓他點） */
+        /* 3. 隱藏導航列的數據按鈕 */
         #n-stat { display: none !important; }
-        #nav-aether-mover { width: calc(33.3% - 12px) !important; } /* 重新計算滑塊寬度 */
-        .nav-item { flex: 1; }
+        
+        /* 4. 如果數據按鈕隱藏，重新調整導航滑塊與寬度 */
+        .nav-item { flex: 1 !important; }
+        #nav-aether-mover { width: calc(33.33% - 12px) !important; } 
     `;
     document.head.appendChild(maskStyle);
     console.log("🛡️ 員工模式啟動：已自動隱藏全站金額數據。");
 }
-
-});
 // ==========================================================================
 // --- 【V318 數據分析大腦：時段、週熱度與標籤全自動統計】 ---
 // ==========================================================================
@@ -3154,17 +2914,10 @@ function renderStats() {
         </div>`;
 }
 
-// ==========================================================================
-// 🚀 V318 鋼鐵同步引擎：【自動建立資料 + 全新店號激活版】
-// ==========================================================================
 async function pullFromCloud() {
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     
-    // 🛡️ 鋼鐵檢查：若尚未激活，不執行同步
-    if (!auth || !auth.id || auth.id === "未綁定" || !auth.key) {
-        console.log("☁️ 雲端同步跳過：尚未激活");
-        return;
-    }
+    if (!auth || !auth.id || auth.id === "未綁定") return;
 
     try {
         console.log("☁️ 正在檢查雲端數據 (店號: " + auth.id + ")...");
@@ -3172,15 +2925,13 @@ async function pullFromCloud() {
         
         let cloudData;
 
-        // 🌟 核心邏輯：如果雲端「完全沒有」這個店號文檔，或者文檔是空的
+        // 🌟 邏輯 A：雲端完全沒資料 (新店號)
         if (!snap.exists || !snap.data().stylists || snap.data().stylists.length === 0) {
-            console.log("✨ 偵測到全新店號，正在為您初始化雲端空間...");
+            console.log("✨ 執行【自動開墾】...");
             
-            const defaultStructure = {
-                storeName: (snap.exists && snap.data().storeName) ? snap.data().storeName : "我的專屬空間",
-                startH: "11:00",
-                endH: "20:00",
-                offColor: "#e5e5ea",
+            cloudData = {
+                storeName: "我的專屬空間",
+                startH: "11:00", endH: "20:00",
                 stylists: [{id: 1, name: '設計師A', color: '#1d1d1f'}], 
                 tags: [{id: 1, name: '剪髮'}, {id: 2, name: '洗髮'}], 
                 payTagsDef: [
@@ -3188,45 +2939,38 @@ async function pullFromCloud() {
                     {id: 'J', name: '街口', color: '#ED1C24'},
                     {id: 'C', name: '現金', color: '#8B4513'}
                 ],
-                appointments: [],
-                clients: [],
-                offDays: [],
-                lastUpdate: Date.now(),
-                status: "active" // 預設為激活狀態
+                appointments: [], clients: [], offDays: [],
+                lastUpdate: Date.now()
             };
-
-            // 🚀 關鍵：主動在雲端建立文檔
-            await db.collection("Salons").doc(auth.id).set(defaultStructure, { merge: true });
-            
-            // 如果是新建立的，直接讓 App 使用這套資料
-            cloudData = defaultStructure;
-            console.log("✅ 雲端空間初始化完成。");
+            // 寫入營業資料
+            await db.collection("Salons").doc(auth.id).set(cloudData, { merge: true });
         } else {
-            // 雲端已有資料，正常讀取
+            // 讀取現有資料
             cloudData = snap.data();
         }
 
-        // 🚀 版本比對與同步邏輯
-        const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
+        // 🚀 關鍵補丁：強制將店名同步到「管理後台名單」
+        // 這樣你在管理後台的 LicenseKeys_Booking 就能看到這家店叫什麼名字
+        await db.collection("LicenseKeys_Booking").doc(auth.id).set({
+            key: auth.id,
+            salonName: cloudData.storeName || "未命名店鋪",
+            lastSeen: new Date().toISOString()
+        }, { merge: true }); // 使用 merge 避免覆蓋掉後台設好的 status 或 expiryDate
 
+        // 🚀 執行本地覆蓋邏輯
+        const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
         if (!localData.lastUpdate || (cloudData.lastUpdate > localData.lastUpdate)) {
-            console.log("✅ 執行同步：更新本地數據至最新版本");
             store = cloudData;
             localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store));
-        } else {
-            console.log("💎 本地資料已是最新。");
+            updateStoreUI();  
+            initMonth();      
+            renderCli();      
+            if (typeof renderDay === 'function' && curD) {
+                renderDay(curD.toLocaleDateString('sv'));
+            }
         }
-
-        // 統一刷新 UI
-        updateStoreUI();  
-        initMonth();      
-        renderCli();      
-        if (typeof renderDay === 'function' && curD) {
-            renderDay(curD.toLocaleDateString('sv'));
-        }
-        
     } catch (e) { 
-        console.warn("⚠️ 雲端拉取異常", e); 
+        console.warn("⚠️ 同步程序異常", e); 
     }
 }
 async function editPayTag(id, old) {
@@ -3406,12 +3150,6 @@ async function toggleVIP(aptId, ds) {
     // 增加一個精緻的微震動回饋 (如果手機支援)
     if(window.navigator.vibrate) window.navigator.vibrate(15);
 }
-
-
-
-
-
-// --- 【Aether Flow 穩定修正：人員與項目修改邏輯】 ---
 
 // 1. 修改人員姓名的邏輯 (獨立實體)
 async function editStyTrig(id, old) {
@@ -3628,10 +3366,9 @@ async function editCli(oldName) {
                 ${store.stylists.map(s => `<option value="${s.id}" ${String(s.id) === String(c.lastSty) ? 'selected' : ''}>${s.name}</option>`).join('')}
             </select>
             <div style="display:flex; gap:5px; justify-content:center; align-items:center;">
-                <span style="font-weight:900; color:#888;">🎂 生日：</span>
-                <input id="edit-cm" class="shield-input" type="text" value="${c.bm || ''}" placeholder="月"> / 
-                <input id="edit-cd" class="shield-input" type="text" value="${c.bd || ''}" placeholder="日">
-            </div>
+<input id="edit-cm" class="shield-input" type="tel" value="${c.bm || ''}" placeholder="月" maxlength="2" inputmode="numeric"> 
+<span style="font-weight:900; color:#ccc; font-size:1.5rem; margin:0 5px;">/</span>
+<input id="edit-cd" class="shield-input" type="tel" value="${c.bd || ''}" placeholder="日" maxlength="2" inputmode="numeric">            </div>
         `,
         preConfirm: () => ({
             n: document.getElementById('edit-cn').value,
@@ -3667,26 +3404,6 @@ function setSexCli(s) {
     g.classList.remove('active-girl');
     if(s === 'M') b.classList.add('active-boy');
     if(s === 'F') g.classList.add('active-girl');
-}
-
-// --- 🚀 店長權限：撤銷全店授權 (重置雲端同步鎖) ---
-async function reAuthMaster() {
-    const res = await Swal.fire({
-        title: '確定要撤銷全店授權？',
-        text: "這會讓所有拿副金鑰的設計師立即斷線，妳也需要重新激活！",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ff4d4d',
-        confirmButtonText: '確定撤銷',
-        cancelButtonText: '取消',
-        reverseButtons: true
-    });
-
-    if (res.isConfirmed) {
-        // 刪除本地授權，讓 pullFromCloud 偵測到代碼不符，強迫重新登入
-        localStorage.removeItem('v318_booking_auth');
-        location.reload(); 
-    }
 }
 
 // ==========================================================================
@@ -3744,69 +3461,6 @@ function popStyleDrawer() {
         confirmButtonColor: '#1d1d1f'
     });
 }
-
-// ==========================================================================
-// 📱 Aether V318: Quantum Zoom 旗艦縮放引擎 (iOS 原生手感版)
-// ==========================================================================
-(function() {
-    const laneArea = document.getElementById('day-lanes');
-    if (!laneArea) return;
-
-    let scale = 1;
-    let startDist = 0;
-    let initialScale = 1;
-
-    // 🚀 設定縮放中心與平滑過渡
-    laneArea.style.transformOrigin = "center top"; 
-    laneArea.style.transition = "transform 0.05s linear"; // 極短暫的緩衝，消除抖動
-
-    laneArea.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) {
-            // 抓取初始距離
-            startDist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-            initialScale = scale;
-        }
-    }, { passive: false });
-
-    laneArea.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault(); 
-            
-            const currentDist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-
-            // 計算新的縮放值
-            const zoomFactor = currentDist / startDist;
-            scale = initialScale * zoomFactor;
-
-            // 🎯 限制範圍：最小縮到 0.3 (看全景)，最大 1.5 (看細節)
-            if (scale < 0.3) scale = 0.3;
-            if (scale > 1.5) scale = 1.5;
-
-            // 🚀 核心物理變革：直接縮放整個容器畫布
-            // 這樣文字、圓角、間距會完美等比例縮放，不會有佈局崩壞感
-            laneArea.style.transform = `scale(${scale})`;
-            
-            // 補償寬度：防止縮小時右邊出現大片空白，讓滾動條依然有效
-            laneArea.style.width = `${100 / scale}%`;
-        }
-    }, { passive: false });
-
-    // 🚀 雙擊重置功能 (賈伯斯式的直覺：點兩下回到最舒服的比例)
-    laneArea.addEventListener('dblclick', () => {
-        scale = 1;
-        laneArea.style.transition = "transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)";
-        laneArea.style.transform = `scale(1)`;
-        laneArea.style.width = `100%`;
-        setTimeout(() => { laneArea.style.transition = "transform 0.05s linear"; }, 400);
-    });
-})();
-
 
 </script>
 </body>
