@@ -925,69 +925,166 @@ async function recordDeviceStatus(salonId) {
 }
 
 // ==========================================================================
-// 🛡️ AETHER V318 最終門禁系統 (裝置獨立卡片版)
+// 🛡️ AETHER V318 最終門禁系統 (裝置獨立連動版)
 // ==========================================================================
+
 async function checkLicense() {
     let auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     
-    // 🚀 為這台裝置抽一張號碼牌 (UUID)，永久存在這台機器裡
+    // 1. 產生裝置指紋 (Device UUID)
     let devID = localStorage.getItem('v318_dev_id');
     if(!devID) {
         devID = 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         localStorage.setItem('v318_dev_id', devID);
     }
 
+    // 2. 登入校驗：如果沒資料，跳出輸入框 (對應你的圖片)
     if (!auth || !auth.id) {
-        const { value: shopID } = await Swal.fire({
-            title: '啟動 AETHER V318',
+        const { value: inputKey } = await Swal.fire({
+            title: '歡迎使用 專屬空間',
+            text: '請輸入您的專屬店號以啟用',
             input: 'text',
-            inputPlaceholder: '請輸入店號...',
+            inputPlaceholder: '請輸入金鑰...',
             allowOutsideClick: false,
+            confirmButtonColor: '#1d1d1f',
             backdrop: `rgba(0,0,0,0.9)`
         });
 
-        if (shopID) {
-            const cleanID = shopID.trim().toUpperCase();
-            const fullID = `${cleanID}-${devID}`; // 🚀 重點：店號-裝置ID (例如 051873-DEV-K92J)
-            auth = { id: cleanID, fullID: fullID };
-            localStorage.setItem('v318_booking_auth', JSON.stringify(auth));
-            
-            // 🚀 向雲端報到：建立獨立的裝置授權文件
-            await db.collection("LicenseKeys_Booking").doc(fullID).set({
-                salonId: cleanID,
-                ownerName: "新裝置",
-                deviceID: devID,
-                status: "active",
-                expire: null,
-                model: navigator.userAgent.includes("iPhone") ? "iPhone" : 
-                       (navigator.userAgent.includes("iPad") ? "iPad" : "PC/Mac"),
-                createdAt: Date.now()
-            });
-            location.reload();
+        if (inputKey) {
+            return await verifyKeyFromServer(inputKey.trim(), devID);
         }
         return;
     }
 
-    // 🚀 封鎖監控：只盯著這台裝置自己的文件
+    // 3. 封鎖與過期監控 (聯網時即時檢測)
     if (window.navigator.onLine) {
         try {
-            const snap = await db.collection("LicenseKeys_Booking").doc(auth.fullID).get();
+            // 抓取此裝置在雲端的獨立文件 (格式: 金鑰-裝置ID 或 副金鑰)
+            const docID = auth.fullID || auth.id;
+            const snap = await db.collection("LicenseKeys_Booking").doc(docID).get();
+            
             if (snap.exists) {
                 const cfg = snap.data();
-                // 🛑 如果你在後台按了封鎖，這台機器會立刻跳黑畫面
+                
+                // 🛑 踢除機制：檢查狀態是否為 blocked
                 if (cfg.status === "blocked") {
+                    localStorage.removeItem('v318_booking_auth');
                     executeSystemLockdown("此裝置已被封鎖，請聯繫管理員。");
                     return;
                 }
-                // ⏳ 檢查這台裝置的到期日
-                if (cfg.expire && Date.now() > cfg.expire) {
-                    executeSystemLockdown("此裝置授權已過期。");
+                
+                // ⏳ 過期檢查 (支援分鐘/天數測試)
+                if (cfg.expiryDate && Date.now() > cfg.expiryDate) {
+                    localStorage.removeItem('v318_booking_auth');
+                    executeSystemLockdown("授權已過期，請重新取得授權。");
                     return;
                 }
             }
-        } catch (e) { console.error("門禁校驗失敗"); }
+        } catch (e) { console.error("門禁校驗失敗", e); }
     }
-    pullFromCloud();
+    pullFromCloud(); // 驗證通過，拉取店面資料
+}
+
+// 🚀 核心驗證邏輯：區分主鑰與副鑰
+async function verifyKeyFromServer(inputKey, devID) {
+    Swal.showLoading();
+    const doc = await db.collection("LicenseKeys_Booking").doc(inputKey).get();
+
+    if (!doc.exists) {
+        return Swal.fire('無效金鑰', '請確認金鑰是否正確', 'error').then(() => checkLicense());
+    }
+
+    const data = doc.data();
+    let authData = {};
+
+    if (data.role === 'admin') {
+        // [主鑰路徑]：第一次登入會綁定裝置指紋
+        const fullID = `${inputKey}-${devID}`;
+        authData = { id: inputKey, fullID: fullID, role: 'admin' };
+        
+        // 建立主裝置的活動紀錄
+        await db.collection("LicenseKeys_Booking").doc(fullID).set({
+            ...data,
+            deviceID: devID,
+            lastLogin: Date.now(),
+            model: getDeviceModel()
+        });
+    } else {
+        // [副鑰路徑]：直接使用副鑰 ID 登入
+        authData = { id: data.salonId, fullID: inputKey, role: 'staff' };
+        await db.collection("LicenseKeys_Booking").doc(inputKey).update({
+            lastLogin: Date.now(),
+            model: getDeviceModel()
+        });
+    }
+
+    localStorage.setItem('v318_booking_auth', JSON.stringify(authData));
+    Swal.fire('授權成功', '', 'success').then(() => location.reload());
+}
+
+// 🚀 隱藏門禁生成器 (支援分鐘測試)
+async function generateLicenseTrig() {
+    const { value: password } = await Swal.fire({
+        title: '管理員驗證',
+        input: 'password',
+        confirmButtonColor: '#1d1d1f'
+    });
+
+    if (password !== "051873") return;
+
+    const { value: form } = await Swal.fire({
+        title: '生成新授權',
+        html: `
+            <select id="swal-type" class="swal2-input">
+                <option value="PRO">👑 主授權 (永久)</option>
+                <option value="MIN">⏳ 分鐘測試 (分鐘)</option>
+                <option value="DAY">⏳ 試用授權 (天數)</option>
+            </select>
+            <input id="swal-val" type="number" class="swal2-input" value="1">
+        `,
+        preConfirm: () => ({
+            type: document.getElementById('swal-type').value,
+            val: document.getElementById('swal-val').value
+        })
+    });
+
+    if (form) {
+        let expiry = null;
+        if (form.type === 'MIN') expiry = Date.now() + (form.val * 60 * 1000);
+        if (form.type === 'DAY') expiry = Date.now() + (form.val * 24 * 60 * 60 * 1000);
+
+        const newKey = "BOK-" + Math.random().toString(36).substring(2, 10).toUpperCase();
+        await db.collection("LicenseKeys_Booking").doc(newKey).set({
+            role: 'admin',
+            status: 'active',
+            expiryDate: expiry,
+            salonId: newKey,
+            createdAt: Date.now()
+        });
+
+        Swal.fire('金鑰已生成', `<h2>${newKey}</h2>`, 'success');
+    }
+}
+
+// 工具：取得裝置名稱
+function getDeviceModel() {
+    if (navigator.userAgent.includes("iPhone")) return "iPhone";
+    if (navigator.userAgent.includes("iPad")) return "iPad";
+    return "PC/Mac";
+}
+
+// 工具：系統鎖死畫面
+function executeSystemLockdown(msg) {
+    document.body.innerHTML = `
+        <div style="height:100vh; background:#000; color:#fff; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; font-family:sans-serif;">
+            <div>
+                <h1 style="font-size:3rem;">🔒</h1>
+                <h2>SYSTEM LOCKED</h2>
+                <p style="color:#666;">${msg}</p>
+                <button onclick="location.reload()" style="margin-top:20px; background:#222; border:none; color:#fff; padding:10px 20px; border-radius:10px;">重新整理</button>
+            </div>
+        </div>
+    `;
 }
 
 // ==========================================================================
