@@ -738,11 +738,11 @@ async function generateLicenseTrig() {
     const { value: password } = await Swal.fire({
         title: '管理員驗證',
         input: 'password',
-        inputPlaceholder: '0518',
+        inputPlaceholder: '請輸入管理密碼',
         confirmButtonColor: '#1d1d1f'
     });
 
-    if (password !== "你的管理密碼") { // 這裡建議由後台驗證，此處為邏輯展示
+    if (password !== "051873") { // 這裡建議由後台驗證，此處為邏輯展示
         Swal.fire('驗證失敗', '密碼錯誤', 'error');
         return;
     }
