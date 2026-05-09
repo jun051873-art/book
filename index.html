@@ -802,49 +802,125 @@ async function generateLicenseTrig() {
     }
 }
 
-// 2. 生成副授權 (給員工使用) - 需綁定主裝置
+// ==========================================================================
+// 👑 Aether V318 商業販售版：副授權管理引擎
+// ==========================================================================
+
+// 1. 生成副授權 (店長專用：給員工使用)
 async function generateSubLicense() {
-    // 取得當前主裝置資訊
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     if (!auth || auth.role !== 'admin') {
-        Swal.fire('權限不足', '只有主裝置能生成副授權', 'error');
+        Swal.fire('權限不足', '只有主裝置（店長）能生成與管理副授權', 'error');
         return;
     }
 
     const { value: staffName } = await Swal.fire({
-        title: '生成副授權',
+        title: '生成員工副鑰',
         input: 'text',
-        inputPlaceholder: '輸入人員姓名 (如：小刀設計師)',
+        inputPlaceholder: '請輸入員工名稱 (例如：1號、小刀)',
         showCancelButton: true,
-        confirmButtonColor: '#1d1d1f'
+        confirmButtonColor: '#1d1d1f',
+        confirmButtonText: '生成金鑰'
     });
 
     if (staffName) {
         const subID = "SUB-" + Math.random().toString(36).substring(2, 8).toUpperCase();
-        const fullSubKey = `${auth.salonId}-${subID}`; // 格式：主鑰-SUB-XXXX
+        const fullSubKey = `${auth.salonId}-${subID}`; // 格式：店號-SUB-隨機碼
 
         try {
             await db.collection("LicenseKeys_Booking").doc(fullSubKey).set({
                 role: 'staff',
                 status: 'active',
-                ownerName: staffName,
-                salonId: auth.salonId, // 關聯到主店號
-                createdAt: Date.now()
+                ownerName: staffName, // 你設定的備註名字
+                salonId: auth.salonId, // 綁定在你的店號下
+                createdAt: Date.now(),
+                isActivated: false, // 初始狀態：尚未登入
+                lastSeen: null
             });
 
             Swal.fire({
-                title: '副授權生成成功',
-                icon: 'success',
+                title: '副授權已生成',
                 html: `
-                    <p>請讓 <b>${staffName}</b> 在裝置輸入：</p>
-                    <h2 style="color:#D4AF37; letter-spacing:1px;">${fullSubKey}</h2>
+                    <div style="background:#f2f2f7; padding:20px; border-radius:25px; margin:15px 0;">
+                        <p style="color:#888; font-size:0.9rem; margin-bottom:10px;">給 <b>${staffName}</b> 的專用金鑰：</p>
+                        <h2 id="copy-target" style="color:#D4AF37; letter-spacing:1px; user-select:all !important;">${fullSubKey}</h2>
+                        <p style="font-size:0.7rem; color:#aaa;">(支援長按選取複製)</p>
+                    </div>
+                    <button class="luxe-btn" style="width:100%; background:#1d1d1f; color:#fff;" 
+                            onclick="navigator.clipboard.writeText('${fullSubKey}'); Swal.fire('已複製','','success')">
+                        一鍵複製金鑰
+                    </button>
                 `,
                 confirmButtonColor: '#1d1d1f'
             });
-            if(typeof renderSet === 'function') renderSet(); // 刷新設定頁面列表
+            renderSet(); // 刷新設定頁面的管理清單
         } catch (err) {
             Swal.fire('系統錯誤', '無法生成副鑰', 'error');
         }
+    }
+}
+
+// 2. 渲染副鑰管理清單 (讓店長知道誰登錄了，並能刪除)
+async function renderSubLicenseManager() {
+    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    const container = document.getElementById('sub-license-list');
+    if (!container || !auth || auth.role !== 'admin') return;
+
+    // 從雲端抓取隸屬於此店號的所有金鑰
+    const snap = await db.collection("LicenseKeys_Booking")
+                        .where("salonId", "==", auth.salonId)
+                        .where("role", "==", "staff")
+                        .get();
+
+    if (snap.empty) {
+        container.innerHTML = `<p style="text-align:center; color:#ccc; padding:20px;">目前尚無員工授權</p>`;
+        return;
+    }
+
+    let html = '';
+    snap.forEach(doc => {
+        const data = doc.data();
+        const id = doc.id;
+        // 綠燈代表已登入，灰燈代表未激活
+        const statusLight = data.isActivated ? '#06C755' : '#ccc';
+        const statusText = data.isActivated ? '已登入' : '未激活';
+
+        html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:15px 20px; background:#fff; border-radius:20px; margin-bottom:10px; border:1px solid rgba(0,0,0,0.05);">
+                <div>
+                    <div style="font-weight:900; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+                        <span style="width:10px; height:10px; background:${statusLight}; border-radius:50%;"></span>
+                        ${data.ownerName}
+                    </div>
+                    <div style="font-size:0.7rem; color:#aaa; margin-top:4px;">${id}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <span style="font-size:0.8rem; font-weight:900; color:${statusLight};">${statusText}</span>
+                    <i class="fas fa-user-times" style="color:#ff3b30; cursor:pointer; font-size:1.2rem;" 
+                       onclick="revokeSubKey('${id}', '${data.ownerName}')"></i>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+// 3. 剔除/刪除副鑰邏輯
+async function revokeSubKey(keyId, name) {
+    const result = await Swal.fire({
+        title: `確定剔除 ${name}？`,
+        text: "刪除後該員工裝置將立即失去權限並被鎖定。",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ff3b30',
+        confirmButtonText: '確定剔除',
+        cancelButtonText: '取消'
+    });
+
+    if (result.isConfirmed) {
+        await db.collection("LicenseKeys_Booking").doc(keyId).delete();
+        Swal.fire('已撤銷權限', '', 'success');
+        renderSubLicenseManager(); // 刷新清單
     }
 }
 
@@ -1775,19 +1851,53 @@ function renderSet() {
                 <div style="color:#aaa; font-weight:700;">${(store.payTagsDef || []).length} 種</div>
             </div>
 
-            <!-- 雲端同步區塊 -->
-            <div style="margin-top:60px; padding-top:30px; border-top:1px dashed #eee;">
-                <p style="font-weight:900; color:#888; margin-bottom:20px;"># 雲端同步與數據安全</p>
-                <div style="background:rgba(212,175,55,0.05); border:1px solid rgba(212,175,55,0.2); border-radius:30px; padding:25px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                        <span style="font-weight:900; color:#1d1d1f; font-size:1.1rem;">目前店號：</span>
-                        <span style="color:var(--gold); font-weight:900; font-size:1.1rem;">${auth.id}</span>
+           <!-- 雲端同步與授權管理區塊 -->
+<div style="margin-top:60px; padding-top:30px; border-top:1px dashed #eee;">
+    <p style="font-weight:900; color:#888; margin-bottom:20px;"># 雲端同步與數據安全</p>
+    
+    <div style="background:rgba(212,175,55,0.05); border:1px solid rgba(212,175,55,0.2); border-radius:30px; padding:25px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+            <span style="font-weight:900; color:#1d1d1f; font-size:1.1rem;">目前店號：</span>
+            <span style="color:var(--gold); font-weight:900; font-size:1.1rem;">${auth.salonId || auth.id}</span>
+        </div>
+
+        <!-- 🚀 試用狀態提醒：自動計算天數與變色 -->
+        ${(function() {
+            if (auth.isTrial) {
+                // 計算剩餘天數
+                const timeLeft = Math.ceil((auth.trialExpiry - Date.now()) / (1000 * 60 * 60 * 24));
+                const isUrgent = timeLeft <= 3;
+                const statusColor = isUrgent ? '#ff3b30' : '#D4AF37'; // 低於3天變紅
+                
+                return `
+                    <div style="text-align:center; padding:12px; background:#fff; border-radius:20px; margin-bottom:15px; border:1.5px solid ${statusColor}33;">
+                        <span style="font-size:0.8rem; color:#888; font-weight:500;">試用倒數：</span>
+                        <span style="font-weight:900; color:${statusColor}; font-size:1.2rem;">${timeLeft <= 0 ? '已過期' : timeLeft + ' 天'}</span>
                     </div>
-                    <button class="luxe-btn" style="width:100%; height:50px; background:#fff; color:#ff4d4d; border:1px solid #ff4d4d; border-radius:30px; margin-top:10px; font-size:0.9rem; font-weight:900;" id="btn-reauth-real">
-                        解除綁定 / 重新激活系統
-                    </button>
-                </div>
-            </div>
+                `;
+            }
+            return '<div style="text-align:center; padding:10px; font-size:0.8rem; color:#06C755; font-weight:900;">● 永久正式授權版</div>';
+        })()}
+
+        <button class="luxe-btn" style="width:100%; height:50px; background:#fff; color:#ff4d4d; border:1px solid #ff4d4d; border-radius:30px; margin-top:10px; font-size:0.9rem; font-weight:900;" id="btn-reauth-real">
+            解除綁定 / 重新激活系統
+        </button>
+    </div>
+</div>
+
+<!-- 🚀 員工授權管理：僅限主裝置 (admin) 可見 -->
+${auth.role === 'admin' ? `
+    <div style="margin-top: 30px; padding: 25px; background: rgba(0,0,0,0.02); border-radius: 35px; border: 1.5px dashed #ddd;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h3 style="font-weight:900; margin:0; font-size:1.1rem; color:#1d1d1f;">👥 員工授權管理</h3>
+            <button class="luxe-btn" style="height:40px; font-size:0.8rem; padding:0 15px; background:#1d1d1f; color:#fff; border-radius:20px;" onclick="generateSubLicense()">+ 生成副鑰</button>
+        </div>
+        
+        <div id="sub-license-list">
+            <p style="text-align:center; color:#ccc; font-size:0.9rem; padding:10px 0;">正在載入雲端金鑰狀態...</p>
+        </div>
+    </div>
+` : ''}
 
             <!-- 聯絡創作者 -->
             <div style="margin-top:50px; padding:40px 20px; text-align:center;">
