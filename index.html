@@ -925,82 +925,98 @@ async function recordDeviceStatus(salonId) {
 }
 
 // ==========================================================================
-// 🛡️ AETHER V318 雙欄位門禁系統 (店號 + 金鑰 強制校驗)
+// 🛡️ AETHER V318 彈性門禁系統 (先逛逛、後激活)
 // ==========================================================================
 
 async function checkLicense() {
     let auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     
-    // 1. 產生裝置指紋 (Device UUID)
+    // 1. 產生裝置指紋
     let devID = localStorage.getItem('v318_dev_id');
     if(!devID) {
         devID = 'DEV-' + Math.random().toString(36).substring(2, 8).toUpperCase();
         localStorage.setItem('v318_dev_id', devID);
     }
 
-    // 2. 登入校驗：雙欄位輸入框 (店號 + 金鑰)
+    // 2. 登入校驗：如果不曾綁定，跳出「邀請激活」而非強制輸入
     if (!auth || !auth.id || auth.id === "未綁定") {
-        const { value: formValues } = await Swal.fire({
-            title: '歡迎使用 專屬空間',
-            html: `
-                <div style="text-align:left; padding:10px;">
-                    <label style="font-weight:900; color:#1d1d1f;">專屬店號</label>
-                    <input id="swal-input-sid" class="swal2-input" placeholder="請輸入店號" style="margin-top:5px; margin-bottom:15px;">
-                    
-                    <label style="font-weight:900; color:#1d1d1f;">授權金鑰</label>
-                    <input id="swal-input-key" class="swal2-input" placeholder="BOK-XXXX" style="margin-top:5px;">
-                </div>
-            `,
-            focusConfirm: false,
-            allowOutsideClick: false,
+        const { value: action } = await Swal.fire({
+            title: '歡迎來到 專屬空間',
+            html: `目前為<b>「基礎試用版」</b>，您可以先逛逛體驗系統。<br><small style="color:gray;">若已擁有授權，請點擊下方按鈕激活完整功能。</small>`,
+            icon: 'info',
+            showCancelButton: true,
             confirmButtonColor: '#1d1d1f',
-            confirmButtonText: '立即啟用系統',
-            backdrop: `rgba(0,0,0,0.9)`,
-            preConfirm: () => {
-                const sid = document.getElementById('swal-input-sid').value.trim().toUpperCase();
-                const key = document.getElementById('swal-input-key').value.trim().toUpperCase();
-                if (!sid || !key) {
-                    Swal.showValidationMessage('請完整填寫店號與金鑰');
-                    return false;
-                }
-                return { sid, key };
-            }
+            cancelButtonColor: '#e5e5ea',
+            confirmButtonText: '輸入金鑰激活',
+            cancelButtonText: '先去逛逛',
+            backdrop: `rgba(0,0,0,0.85)`,
+            reverseButtons: true
         });
 
-        if (formValues) {
-            return await verifyKeyFromServer(formValues.sid, formValues.key, devID);
+        // 如果點擊「輸入金鑰激活」
+        if (action) {
+            const { value: formValues } = await Swal.fire({
+                title: '激活 AETHER PRO',
+                html: `
+                    <div style="text-align:left; padding:10px;">
+                        <label style="font-weight:900; color:#1d1d1f;">專屬店號</label>
+                        <input id="swal-input-sid" class="swal2-input" placeholder="請輸入店號" style="margin-top:5px; margin-bottom:15px;">
+                        <label style="font-weight:900; color:#1d1d1f;">授權金鑰</label>
+                        <input id="swal-input-key" class="swal2-input" placeholder="BOK-XXXX" style="margin-top:5px;">
+                    </div>
+                `,
+                focusConfirm: false,
+                confirmButtonColor: '#D4AF37',
+                confirmButtonText: '驗證並啟用',
+                preConfirm: () => {
+                    const sid = document.getElementById('swal-input-sid').value.trim().toUpperCase();
+                    const key = document.getElementById('swal-input-key').value.trim().toUpperCase();
+                    if (!sid || !key) {
+                        Swal.showValidationMessage('請完整填寫店號與金鑰');
+                        return false;
+                    }
+                    return { sid, key };
+                }
+            });
+
+            if (formValues) {
+                return await verifyKeyFromServer(formValues.sid, formValues.key, devID);
+            }
+        } else {
+            // 點擊「先去逛逛」：建立一個臨時的「未綁定」身分，讓系統能跑
+            const guestAuth = { id: "未綁定", role: "guest", salonId: "GUEST" };
+            localStorage.setItem('v318_booking_auth', JSON.stringify(guestAuth));
+            // 這裡不 reload，直接往下跑
         }
-        return;
     }
 
-    // 3. 封鎖與過期監控 (聯網時即時檢測)
-    if (window.navigator.onLine) {
+    // 3. 封鎖與過期監控 (只有已綁定的帳號才需要聯網校驗)
+    if (window.navigator.onLine && auth && auth.id !== "未綁定") {
         try {
             const docID = auth.fullID || auth.id;
             const snap = await db.collection("LicenseKeys_Booking").doc(docID).get();
             if (snap.exists) {
                 const cfg = snap.data();
                 if (cfg.status === "blocked") {
-                    localStorage.removeItem('v318_booking_auth');
                     executeSystemLockdown("此裝置已被封鎖，請聯繫管理員。");
                     return;
                 }
                 if (cfg.expiryDate && Date.now() > cfg.expiryDate) {
-                    localStorage.removeItem('v318_booking_auth');
                     executeSystemLockdown("授權已過期，請重新取得授權。");
                     return;
                 }
             }
-        } catch (e) { console.error("門禁校驗失敗", e); }
+        } catch (e) { console.error("雲端驗證跳過", e); }
     }
+    
+    // 執行資料同步 (如果沒店號，pullFromCloud 會自動處理基礎邏輯)
     pullFromCloud(); 
 }
 
-// 🚀 核心驗證邏輯：強制比對「店號」與「金鑰」的關聯性
+// 🚀 核心驗證邏輯：比對「店號」與「金鑰」
 async function verifyKeyFromServer(inputSid, inputKey, devID) {
     Swal.showLoading();
     
-    // 從金鑰集合中找這把鑰匙
     const doc = await db.collection("LicenseKeys_Booking").doc(inputKey).get();
 
     if (!doc.exists) {
@@ -1009,43 +1025,31 @@ async function verifyKeyFromServer(inputSid, inputKey, devID) {
 
     const data = doc.data();
 
-    // 💡 關鍵校驗：金鑰登記的 salonId 必須等於 使用者輸入的店號
+    // 關鍵校驗：店號必須對應
     if (data.salonId !== inputSid) {
         return Swal.fire('驗證失敗', '店號與金鑰不匹配', 'error').then(() => checkLicense());
     }
 
-    let authData = {};
+    let authData = { id: inputSid, fullID: `${inputKey}-${devID}`, role: 'admin', salonId: inputSid };
 
-    if (data.role === 'admin') {
-        // [主鑰路徑]：第一次登入會綁定裝置指紋
-        const fullID = `${inputKey}-${devID}`;
-        authData = { id: inputSid, fullID: fullID, role: 'admin', salonId: inputSid };
-        
-        await db.collection("LicenseKeys_Booking").doc(fullID).set({
-            ...data,
-            deviceID: devID,
-            lastLogin: Date.now(),
-            model: getDeviceModel()
-        });
-    } else {
-        // [副鑰路徑]：直接使用副鑰
-        authData = { id: inputSid, fullID: inputKey, role: 'staff', salonId: inputSid };
-        await db.collection("LicenseKeys_Booking").doc(inputKey).update({
-            lastLogin: Date.now(),
-            model: getDeviceModel()
-        });
-    }
+    // 存入 Firebase 紀錄
+    await db.collection("LicenseKeys_Booking").doc(authData.fullID).set({
+        ...data,
+        deviceID: devID,
+        lastLogin: Date.now(),
+        model: getDeviceModel()
+    }, { merge: true });
 
     localStorage.setItem('v318_booking_auth', JSON.stringify(authData));
+    
     Swal.fire({
-        title: '授權成功',
-        text: `店號 ${inputSid} 已成功激活`,
+        title: '激活成功',
+        text: `歡迎進入 AETHER PRO`,
         icon: 'success',
         timer: 1500,
         showConfirmButton: false
     }).then(() => location.reload());
 }
-
 // 🚀 門禁生成器：在設定頁面核發新授權
 async function generateLicenseTrig() {
     const { value: password } = await Swal.fire({
