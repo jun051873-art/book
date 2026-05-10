@@ -16,6 +16,12 @@
 
     <style>
 
+    /* 讓設定標題有長按的回饋感 */
+#admin-trigger:active {
+    opacity: 0.5;
+    transform: scale(0.95);
+    transition: 0.2s;
+}
 
 /* 🚀 補丁 1：強制日曆週標題（日一二...）與下方數字對齊 */
 .calendar-header {
@@ -729,10 +735,9 @@ html, body {
 <script>
 
 // ==========================================================================
-// 🚀 Aether V318 授權管理引擎 (Firebase 實體連動版)
+// 🚀 強化版：Aether V318 授權管理引擎 (含店號自訂與一鍵複製) - 修正穩定版
 // ==========================================================================
 
-// 1. 生成授權金鑰 (店長/試用) - 寫入雲端
 async function generateLicenseTrig() {
     // A. 管理員驗證
     const { value: password } = await Swal.fire({
@@ -743,65 +748,120 @@ async function generateLicenseTrig() {
     });
 
     if (password !== "051873") {
-        Swal.fire('驗證失敗', '密碼錯誤', 'error');
+        if(password) Swal.fire('驗證失敗', '密碼錯誤', 'error');
         return;
     }
 
-    // B. 選擇等級
-    const { value: level } = await Swal.fire({
-        title: '授權等級設定',
-        input: 'radio',
-        inputOptions: {
-            'PRO': '👑 店長 (永久主鑰)',
-            'TRIAL': '⏳ 試用 (自定義天數)'
+    // B. 設定店號與授權類型
+    const { value: formValues } = await Swal.fire({
+        title: '核發新店面授權',
+        html: `
+            <div style="text-align:left; padding:10px;">
+                <label style="font-weight:900; color:#1d1d1f;">1. 設定店號 (Salon ID)</label>
+                <input id="swal-input-sid" class="swal2-input" placeholder="例如：SALON01" style="margin-top:5px; margin-bottom:15px;">
+                
+                <label style="font-weight:900; color:#1d1d1f; display:block;">2. 授權等級</label>
+                <select id="swal-input-level" class="swal2-input" style="margin-top:5px;">
+                    <option value="PRO">👑 店長 (永久主鑰)</option>
+                    <option value="TRIAL">⏳ 試用 (自定義天數)</option>
+                </select>
+
+                <div id="trial-days-box" style="margin-top:15px; display:none;">
+                    <label style="font-weight:900; color:#1d1d1f;">3. 設定試用天數</label>
+                    <input id="swal-input-days" type="number" class="swal2-input" value="30" min="1" style="margin-top:5px;">
+                </div>
+            </div>
+        `,
+        focusConfirm: false,
+        confirmButtonColor: '#1d1d1f',
+        confirmButtonText: '下一步：生成金鑰',
+        didOpen: () => {
+            const levelSelect = document.getElementById('swal-input-level');
+            const daysBox = document.getElementById('trial-days-box');
+            levelSelect.onchange = () => {
+                daysBox.style.display = (levelSelect.value === 'TRIAL') ? 'block' : 'none';
+            };
         },
-        inputValidator: (value) => !value && '請選擇一個選項'
+        preConfirm: () => {
+            const sid = document.getElementById('swal-input-sid').value.trim().toUpperCase();
+            const level = document.getElementById('swal-input-level').value;
+            const days = document.getElementById('swal-input-days').value;
+            if (!sid) {
+                Swal.showValidationMessage('請務必設定店號');
+                return false;
+            }
+            return { sid, level, days };
+        }
     });
 
-    let expiryTimestamp = null;
-    if (level === 'TRIAL') {
-        const { value: days } = await Swal.fire({
-            title: '設定試用天數',
-            input: 'number',
-            inputValue: 30,
-            inputAttributes: { min: 1, step: 1 }
-        });
-        // 計算到期毫秒數
-        expiryTimestamp = Date.now() + (days * 24 * 60 * 60 * 1000);
-    }
+    if (formValues) {
+        let expiryTimestamp = null;
+        if (formValues.level === 'TRIAL') {
+            expiryTimestamp = Date.now() + (formValues.days * 24 * 60 * 60 * 1000);
+        }
 
-    // C. 生成並寫入 Firebase
-    const newKey = "BOK-" + Math.random().toString(36).substring(2, 12).toUpperCase();
-    
-    try {
-        await db.collection("LicenseKeys_Booking").doc(newKey).set({
-            role: 'admin',
-            status: 'active',
-            level: level,
-            expiryDate: expiryTimestamp,
-            createdAt: Date.now(),
-            salonId: newKey // 主鑰的 salonId 即為自己
-        });
+        // C. 生成金鑰並寫入 Firebase
+        const newKey = "BOK-" + Math.random().toString(36).substring(2, 12).toUpperCase();
+        
+        try {
+            await db.collection("LicenseKeys_Booking").doc(newKey).set({
+                role: 'admin',
+                status: 'active',
+                level: formValues.level,
+                expiryDate: expiryTimestamp,
+                createdAt: Date.now(),
+                salonId: formValues.sid // 使用自定義店號
+            });
 
-        Swal.fire({
-            title: '成功生成主授權',
-            html: `
-                <div class="auth-input-group">
-                    <p class="auth-gold-text">等級：${level === 'PRO' ? '永久授權' : '試用金鑰'}</p>
-                    <h2 style="letter-spacing:2px; color:#D4AF37;">${newKey}</h2>
-                </div>
-                <button class="luxe-btn" onclick="navigator.clipboard.writeText('${newKey}'); Swal.fire('已複製','','success')">
-                    <i class="fas fa-copy"></i> 點我複製金鑰
-                </button>
-            `,
-            confirmButtonColor: '#1d1d1f'
-        });
-    } catch (err) {
-        console.error("生成失敗", err);
-        Swal.fire('系統錯誤', '無法寫入雲端數據庫', 'error');
+            // 🏆 最終成功彈窗：改用監聽器，解決引號報錯問題
+            Swal.fire({
+                title: '主授權金鑰已核發',
+                html: `
+                    <div style="background:#f2f2f7; padding:20px; border-radius:25px; margin:15px 0; border:1.5px dashed #D4AF37;">
+                        <p style="color:#888; font-size:0.85rem; margin-bottom:5px;">店號：${formValues.sid}</p>
+                        <h2 style="color:#D4AF37; letter-spacing:2px; margin:10px 0; font-family:monospace;">${newKey}</h2>
+                        <p style="font-size:0.75rem; color:#aaa;">( 權限等級：${formValues.level === 'PRO' ? '永久主鑰' : '試用授權'} )</p>
+                    </div>
+                    <button id="q-copy-btn-real" class="luxe-btn" style="width:100%; height:55px; background:#1d1d1f; color:#fff; border-radius:30px; font-weight:900; font-size:1.1rem; border:none; cursor:pointer;">
+                        <i class="fas fa-copy" style="margin-right:8px;"></i> 一鍵複製金鑰
+                    </button>
+                `,
+                showConfirmButton: false,
+                backdrop: `rgba(0,0,0,0.8)`,
+                didOpen: () => {
+                    // 🎯 通電邏輯：手動綁定點擊事件，避開 HTML 字串拼接錯誤
+                    const copyBtn = document.getElementById('q-copy-btn-real');
+                    if(copyBtn) {
+                        copyBtn.onclick = () => {
+                            const textToCopy = String(newKey); 
+                            if (navigator.clipboard && window.isSecureContext) {
+                                navigator.clipboard.writeText(textToCopy).then(() => {
+                                    Swal.fire({icon:'success',title:'金鑰已複製',timer:1000,showConfirmButton:false});
+                                });
+                            } else {
+                                // 備援方案
+                                const textArea = document.createElement("textarea");
+                                textArea.value = textToCopy;
+                                document.body.appendChild(textArea);
+                                textArea.select();
+                                try {
+                                    document.execCommand('copy');
+                                    Swal.fire({icon:'success',title:'金鑰已複製',timer:1000,showConfirmButton:false});
+                                } catch (err) {
+                                    console.error('複製失敗');
+                                }
+                                document.body.removeChild(textArea);
+                            }
+                        };
+                    }
+                }
+            });
+        } catch (err) {
+            console.error("生成失敗", err);
+            Swal.fire('系統錯誤', '無法寫入雲端數據庫', 'error');
+        }
     }
 }
-
 // ==========================================================================
 // 👑 Aether V318 商業販售版：副授權管理引擎
 // ==========================================================================
@@ -1796,19 +1856,17 @@ function renderSet() {
     const container = document.getElementById('set-content-container');
     if(!container) return;
     
-    // 獲取目前店號資訊
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth')) || { id: "未綁定" };
 
-    // 1. 渲染純粹的 HTML 結構（移除所有 admin 判斷門檻）
+    // 1. 渲染 HTML (這裡已經把底部的大卡片拿掉了，只留下乾淨的列表)
     container.innerHTML = `
         <div style="padding-top:20px;" id="set-main-list">
-            <!-- 品牌與識別 -->
             <div class="set-drawer-trigger" data-action="rename">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-signature"></i></div>
                     <div>
                         <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">品牌識別設定</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">BRAND IDENTITY</div>
+                        <div style="font-size:0.8rem; color:#aaa; font-weight:700;">BRAND IDENTITY</div>
                     </div>
                 </div>
                 <div style="text-align:right; pointer-events:none;">
@@ -1816,136 +1874,81 @@ function renderSet() {
                 </div>
             </div>
 
-            <!-- 營業時間 -->
             <div class="set-drawer-trigger" data-action="time">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box" style="background:var(--gold);"><i class="fas fa-clock"></i></div>
                     <div>
                         <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">營業時間設定</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">BUSINESS HOURS</div>
+                        <div style="font-size:0.8rem; color:#aaa; font-weight:700;">BUSINESS HOURS</div>
                     </div>
                 </div>
                 <div style="color:var(--gold); font-weight:900; font-size:1.3rem;">${store.startH || '11:00'} - ${store.endH || '19:00'}</div>
             </div>
 
-            <!-- 人員管理 -->
             <div class="set-drawer-trigger" data-action="sty">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-user-tie"></i></div>
                     <div>
                         <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">人員團隊管理</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">STYLIST TEAM</div>
+                        <div style="font-size:0.8rem; color:#aaa; font-weight:700;">STYLIST TEAM</div>
                     </div>
                 </div>
                 <div style="color:#aaa; font-weight:700;">${store.stylists.length} 位</div>
             </div>
 
-            <!-- 服務管理 -->
             <div class="set-drawer-trigger" data-action="tag">
                 <div style="display:flex; align-items:center; pointer-events:none;">
                     <div class="set-icon-box"><i class="fas fa-concierge-bell"></i></div>
                     <div>
                         <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">服務項目管理</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">SERVICE MENU</div>
+                        <div style="font-size:0.8rem; color:#aaa; font-weight:700;">SERVICE MENU</div>
                     </div>
                 </div>
                 <div style="color:#aaa; font-weight:700;">${store.tags.length} 個</div>
             </div>
 
-            <!-- 支付標籤 -->
-            <div class="set-drawer-trigger" data-action="paytag">
-                <div style="display:flex; align-items:center; pointer-events:none;">
-                    <div class="set-icon-box"><i class="fas fa-wallet"></i></div>
-                    <div>
-                        <div style="font-weight:900; font-size:1.2rem; color:var(--primary);">自定義支付標籤</div>
-                        <div style="font-size:0.8rem; color:#aaa; font-weight:700; letter-spacing:1px;">PAYMENT TAGS</div>
+            ${auth.role === 'admin' ? `
+                <div style="margin-top: 30px; padding: 25px; background: rgba(0,0,0,0.02); border-radius: 35px; border: 1.5px dashed #ddd;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                        <h3 style="font-weight:900; margin:0; font-size:1.1rem; color:#1d1d1f;">👥 員工授權管理</h3>
+                        <button class="luxe-btn" style="height:40px; font-size:0.8rem; padding:0 15px; background:#1d1d1f; color:#fff; border-radius:20px;" onclick="generateSubLicense()">+ 生成副鑰</button>
+                    </div>
+                    <div id="sub-license-list">
+                        <p style="text-align:center; color:#ccc; font-size:0.9rem;">正在載入...</p>
                     </div>
                 </div>
-                <div style="color:#aaa; font-weight:700;">${(store.payTagsDef || []).length} 種</div>
-            </div>
+            ` : ''}
 
-           <!-- 雲端同步與授權管理區塊 -->
-<div style="margin-top:60px; padding-top:30px; border-top:1px dashed #eee;">
-    <p style="font-weight:900; color:#888; margin-bottom:20px;"># 雲端同步與數據安全</p>
-    
-    <div style="background:rgba(212,175,55,0.05); border:1px solid rgba(212,175,55,0.2); border-radius:30px; padding:25px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-            <span style="font-weight:900; color:#1d1d1f; font-size:1.1rem;">目前店號：</span>
-            <span style="color:var(--gold); font-weight:900; font-size:1.1rem;">${auth.salonId || auth.id}</span>
-        </div>
-
-        <!-- 🚀 試用狀態提醒：自動計算天數與變色 -->
-        ${(function() {
-            if (auth.isTrial) {
-                // 計算剩餘天數
-                const timeLeft = Math.ceil((auth.trialExpiry - Date.now()) / (1000 * 60 * 60 * 24));
-                const isUrgent = timeLeft <= 3;
-                const statusColor = isUrgent ? '#ff3b30' : '#D4AF37'; // 低於3天變紅
-                
-                return `
-                    <div style="text-align:center; padding:12px; background:#fff; border-radius:20px; margin-bottom:15px; border:1.5px solid ${statusColor}33;">
-                        <span style="font-size:0.8rem; color:#888; font-weight:500;">試用倒數：</span>
-                        <span style="font-weight:900; color:${statusColor}; font-size:1.2rem;">${timeLeft <= 0 ? '已過期' : timeLeft + ' 天'}</span>
-                    </div>
-                `;
-            }
-            return '<div style="text-align:center; padding:10px; font-size:0.8rem; color:#06C755; font-weight:900;">● 永久正式授權版</div>';
-        })()}
-
-        <button class="luxe-btn" style="width:100%; height:50px; background:#fff; color:#ff4d4d; border:1px solid #ff4d4d; border-radius:30px; margin-top:10px; font-size:0.9rem; font-weight:900;" id="btn-reauth-real">
-            解除綁定 / 重新激活系統
-        </button>
-    </div>
-</div>
-
-<!-- 🚀 員工授權管理：僅限主裝置 (admin) 可見 -->
-${auth.role === 'admin' ? `
-    <div style="margin-top: 30px; padding: 25px; background: rgba(0,0,0,0.02); border-radius: 35px; border: 1.5px dashed #ddd;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h3 style="font-weight:900; margin:0; font-size:1.1rem; color:#1d1d1f;">👥 員工授權管理</h3>
-            <button class="luxe-btn" style="height:40px; font-size:0.8rem; padding:0 15px; background:#1d1d1f; color:#fff; border-radius:20px;" onclick="generateSubLicense()">+ 生成副鑰</button>
-        </div>
-        
-        <div id="sub-license-list">
-            <p style="text-align:center; color:#ccc; font-size:0.9rem; padding:10px 0;">正在載入雲端金鑰狀態...</p>
-        </div>
-    </div>
-` : ''}
-
-            <!-- 聯絡創作者 -->
-            <div style="margin-top:50px; padding:40px 20px; text-align:center;">
-                <div style="font-weight:900; font-size:1.1rem; color:#1d1d1f;">AETHER V318 QUANTUM</div>
-                <p style="font-size:0.8rem; color:#ccc;">© 2026 小刀工作室 版權所有</p>
-            </div>
-        </div>
-        
-        <!-- 🔐 系統權限管理 (新增在最底下) -->
-        <div style="margin: 20px 0; padding: 20px; background: rgba(0,0,0,0.03); border-radius: 25px;">
-            <p style="font-weight: 900; color: #888; margin-bottom: 15px; font-size: 0.8rem;"># 系統權限管理</p>
-            
-            <div class="set-drawer-trigger" onclick="generateLicenseTrig()">
-                <div style="display: flex; align-items: center;">
-                    <div class="set-icon-box" style="background: #1d1d1f; color: white; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                        <i class="fas fa-key"></i>
-                    </div>
-                    <div style="font-weight: 900;">生成主授權金鑰</div>
+            <div style="margin-top:40px; padding:25px; background:rgba(212,175,55,0.05); border:1.5px solid rgba(212,175,55,0.2); border-radius:30px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <span style="font-weight:900; color:#1d1d1f;">目前店號：</span>
+                    <span style="color:var(--gold); font-weight:900;">${auth.salonId || auth.id}</span>
                 </div>
+                <button class="luxe-btn" style="width:100%; height:50px; background:#fff; color:#ff3b30; border:1px solid #ff3b30; border-radius:30px; font-size:0.9rem; font-weight:900;" id="btn-reauth-real">
+                    解除綁定 / 重新激活系統
+                </button>
             </div>
 
-            <div class="set-drawer-trigger" onclick="generateSubLicense()" style="margin-top: 15px;">
-                <div style="display: flex; align-items: center;">
-                    <div class="set-icon-box" style="background: #555; color: white; width: 35px; height: 35px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                        <i class="fas fa-user-shield"></i>
-                    </div>
-                    <div style="font-weight: 900;">生成副授權 (員工用)</div>
-                </div>
+            <div style="margin-top:50px; padding-bottom:40px; text-align:center;">
+                <div style="font-weight:900; font-size:1rem; color:#ccc;">AETHER V318 QUANTUM</div>
+                <p style="font-size:0.75rem; color:#eee;">© 2026 小刀工作室 版權所有</p>
             </div>
         </div>
-        `;
+    `;
 
-    // 🎯 2. 核心修正：使用 setTimeout 確保 HTML 渲染後才綁定事件，防止失效
+    // 🎯 2. 事件綁定大集合 (這就是你問的那一段)
     setTimeout(() => {
-        // 綁定所有抽屜按鈕
+        // A. 隱藏長按手勢：長按最上方「設定」標題 5 秒
+        const adminTitle = document.getElementById('admin-trigger');
+        if (adminTitle) {
+            let pressTimer;
+            const start = () => { pressTimer = setTimeout(() => { if(window.navigator.vibrate) window.navigator.vibrate(50); generateLicenseTrig(); }, 5000); };
+            const stop = () => clearTimeout(pressTimer);
+            adminTitle.ontouchstart = start; adminTitle.ontouchend = stop;
+            adminTitle.onmousedown = start; adminTitle.onmouseup = stop;
+        }
+
+        // B. 綁定所有抽屜按鈕 (通電邏輯)
         const list = document.getElementById('set-main-list');
         if (list) {
             list.onclick = (e) => {
@@ -1953,42 +1956,35 @@ ${auth.role === 'admin' ? `
                 if (!item) return;
                 const action = item.dataset.action;
                 
-                // 直接執行對應功能，不設門檻
                 if (action === 'rename') popRenameStore();
                 if (action === 'time') popTimeDrawer();
                 if (action === 'sty') popStyDrawer();
                 if (action === 'tag') popTagDrawer();
                 if (action === 'paytag') popPayTagDrawer();
-                if (action === 'style') popStyleDrawer();
                 if (action === 'offday') popOffDayDrawer();
             };
         }
 
-        // 綁定登出/重新激活按鈕
+        // C. 解除綁定邏輯
         const reBtn = document.getElementById('btn-reauth-real');
         if (reBtn) {
-            reBtn.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                Swal.fire({
-                    title: '確定要解除綁定嗎？',
-                    text: '這將清除目前的本機快取並重新驗證店號。',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#1d1d1f',
-                    confirmButtonText: '確定解除',
-                    cancelButtonText: '取消'
-                }).then((result) => {
+            reBtn.onclick = () => {
+                Swal.fire({ title: '確定解除綁定？', icon: 'warning', showCancelButton: true, confirmButtonColor: '#ff3b30' }).then(r => {
                     if (result.isConfirmed) {
                         localStorage.removeItem('v318_booking_auth');
-                        localStorage.removeItem('SALON_LOCK_V318');
                         location.reload();
                     }
                 });
             };
         }
+
+        // D. 渲染員工名單
+        if (auth.role === 'admin' && typeof renderSubLicenseManager === 'function') {
+            renderSubLicenseManager();
+        }
     }, 60);
 }
+   
 // --- 【Aether Flow：排休抽屜旗艦版 - 恢復黑灰按鈕美學】 ---
 function popOffDayDrawer() {
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
