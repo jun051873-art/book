@@ -1001,7 +1001,7 @@ async function recordDeviceStatus(salonId) {
 }
 
 // ==========================================================================
-// 🛡️ AETHER V318 彈性門禁系統 (修正版：確保先逛逛不鎖死)
+// 🛡️ AETHER V318 彈性門禁系統 (直擊人心修正版：先逛逛、不鎖死)
 // ==========================================================================
 
 async function checkLicense() {
@@ -1058,17 +1058,23 @@ async function checkLicense() {
                 return await verifyKeyFromServer(formValues.sid, formValues.key, devID);
             }
         } else {
-            // ✅ 關鍵修正：建立臨時身分並強制重新整理，確保整個 App 意識到現在是「Guest」狀態
-            const guestAuth = { id: "未綁定", role: "guest", salonId: "GUEST" };
-            localStorage.setItem('v318_booking_auth', JSON.stringify(guestAuth));
-            location.reload(); // 重新載入以觸發正確的 pullFromCloud 邏輯
-            return;
+            // ✅ 優化：立刻更新本地與變數狀態，並繼續執行，不重新載入
+            auth = { id: "未綁定", role: "guest", salonId: "GUEST" };
+            localStorage.setItem('v318_booking_auth', JSON.stringify(auth));
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: '已進入試用模式',
+                showConfirmButton: false,
+                timer: 2000
+            });
+            // 繼續往下跑，此時 auth.id 已經是 "未綁定"
         }
     }
 
-    // 3. 封鎖與過期監控 (只有「真的有綁定」的帳號才校驗雲端)
-    // 這裡增加判斷：auth.id 不能是 "未綁定"
-    if (window.navigator.onLine && auth && auth.id && auth.id !== "未綁定") {
+    // 3. 封鎖與過期監控 (排除「未綁定」身分，避免誤觸黑色畫面)
+    if (window.navigator.onLine && auth && auth.id !== "未綁定") {
         try {
             const docID = auth.fullID || auth.id;
             const snap = await db.collection("LicenseKeys_Booking").doc(docID).get();
@@ -1078,7 +1084,7 @@ async function checkLicense() {
                     executeSystemLockdown("此裝置已被封鎖，請聯繫管理員。");
                     return;
                 }
-                // 檢查過期：僅針對非永久授權進行判斷
+                // 只有正式授權才檢查過期，逛逛模式跳過此邏輯
                 if (cfg.expiryDate && Date.now() > cfg.expiryDate) {
                     executeSystemLockdown("授權已過期，請重新取得授權。");
                     return;
@@ -1089,9 +1095,10 @@ async function checkLicense() {
         }
     }
     
-    // 執行資料同步
+    // 4. 執行資料同步
+    // 如果是「未綁定」狀態，pullFromCloud 會抓取預設範例資料，而不會報錯
     if (typeof pullFromCloud === "function") {
-        pullFromCloud(); 
+        await pullFromCloud(); 
     }
 }
 
