@@ -1314,7 +1314,7 @@ function renderDay(ds) {
                                 </span>
                                 ${selectedTags.length > 0 ? selectedTags.map(pt => `<span class="tag-pill" style="background:${pt.color}; color:#fff; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">${pt.name}</span>`).join('') : '<span class="tag-pill" style="background:#f2f2f7; color:#aaa; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">+ 狀態</span>'}
                                 <span class="tag-pill" style="border:1.5px solid var(--gold); color:${a.isVIP ? '#fff' : 'var(--gold)'}; background:${a.isVIP ? 'var(--gold)' : 'transparent'}; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;" onclick="event.stopPropagation(); toggleVIP('${a.id}','${ds}')">
-                                    ${a.isVIP ? '⭐ 指定' : '新客/舊客'} 
+                                    ${a.isVIP ? '⭐ 指定' : '不指定'} 
                                 </span>
                             </div>
 
@@ -3013,6 +3013,7 @@ function renderStats() {
     // 🚀 修正 1：精準抓取渲染區域 ID
     const area = document.getElementById('stats-render-container');
     if (!area) return;
+    area.innerHTML = ""; // 👈 增加這行，防止緩存數據殘留
 
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     
@@ -3337,29 +3338,45 @@ async function popTagPicker(aptId, ds) {
         preConfirm: () => window.tmpSelected
     });
 
-    if (selectedIds) {
-        a.payTags = selectedIds;
-        await saveS();
-        renderDay(ds);
-    }
-}
+   if (selectedIds) {
+            // 1. 🚀 先記住目前捲軸位置
+            const scrollContainer = document.getElementById('day-lanes');
+            const scrollPos = scrollContainer ? scrollContainer.scrollLeft : 0;
 
-// 輔助店員：點擊切換質感發亮
+            // 2. 執行存檔與重畫
+            a.payTags = selectedIds;
+            await saveS();
+            renderDay(ds);
+
+            // 3. 🚀 立即釘回原位，解決閃跳
+            if (scrollContainer) {
+                scrollContainer.scrollLeft = scrollPos;
+                requestAnimationFrame(() => {
+                    scrollContainer.scrollLeft = scrollPos;
+                });
+            }
+        }
+// --- 🚀 V318 旗艦版：支付標籤切換 (純 UI 渲染) ---
 function toggleSwalTag(id, color) {
     window.tmpSelected = window.tmpSelected || [];
     const el = document.getElementById('swal-tag-' + id);
+    if (!el) return;
+    
     const idx = window.tmpSelected.indexOf(id);
     if(idx > -1) {
+        // 取消選取
         window.tmpSelected.splice(idx, 1);
         el.style.background = 'transparent';
         el.style.color = color;
-        el.style.boxShadow = 'none';
+        el.style.boxShadow = 'none'; // 移除發光
     } else {
+        // 選取點亮
         window.tmpSelected.push(id);
         el.style.background = color;
         el.style.color = '#fff';
-        el.style.boxShadow = '0 8px 15px ' + color + '44';
+        el.style.boxShadow = '0 8px 15px ' + color + '44'; // 加上精品發光
     }
+    // 💡 這裡不執行 saveS() 與 renderDay()，確保彈窗操作流暢不卡頓
 }
 
 // --- 🚀 補回：備註快速修改引擎 ---
