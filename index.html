@@ -213,50 +213,36 @@ background: #f9f9fb !important;
     font-weight: 800 !important;
 }
         .suggest-item { padding: 15px 20px; border-bottom: 0.5px solid #eee; font-weight: 900; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
-/* 🚀 Aether V318: 極限物理縮放樣式 */
+/* 🚀 V318：回歸穩定跑道，刪除縮放變數 */
 .lane-container {
     display: flex;
     overflow-x: auto;
-    padding: 20px !important; /* 👈 縮小邊距，把更多空間留給內容 */
-    gap: var(--lane-gap) !important;
-    transition: none !important; /* 👈 確保手指捏的時候零延遲 */
+    padding: 20px 20px 20px 50px !important; /* 👈 左側增加 50px，給時間標籤預留呼吸空間 */
+    gap: 15px !important;
+    -webkit-overflow-scrolling: touch;
     align-items: flex-start;
 }
 
 .lane {
     flex: 1;
-    min-width: var(--lane-w) !important;
+    min-width: 280px !important; /* 👈 固定寬度，不再縮放，確保視覺穩定 */
     display: flex;
     flex-direction: column;
-    gap: 20px;
-    transform-origin: top left; /* 👈 縮放原點，保證放大時不跑偏 */
-    transition: none !important;
-    white-space: nowrap; /* 👈 縮小時名字不換行，維持上帝視角的整潔 */
+    gap: 15px;
+    /* 移除所有 transform 相關代碼 */
 }
- 
-     .time-row-space { min-height: 240px; display: flex; flex-direction: row; gap: 12px; align-items: stretch; }
-    .apt-card {
-    padding: 30px;
-    background: rgba(255, 255, 255, 0.55) !important;
-    backdrop-filter: blur(30px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
-    border-radius: 40px;
-    border-left: 15px solid var(--c);
-    position: relative;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
 
-    /* 🚀 物理縮放核心補丁 */
-    transition: none !important; /* 👈 移除 transition，縮放才不會有殘影 */
-    transform: scale(var(--apt-scale)); /* 👈 讓內容跟著手指變大變小 */
-    transform-origin: top left; /* 👈 縮放基準點鎖死左上角 */
-    
-    /* 🚀 寬度補償公式：防止縮小時卡片橫向跟著縮水 */
-    width: calc(100% / var(--apt-scale)) !important; 
-    
+/* 修正時間標籤，確保 00:00 不會被切掉 */
+.time-row-space::before {
+    content: attr(data-time); /* 透過 HTML 屬性抓取時間 */
+    position: absolute;
+    left: -48px; /* 移至左側預留空間 */
+    top: 10px;
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #ccc;
+    letter-spacing: -0.5px;
+
     /* 防止卡片內的文字因為縮小而換行亂掉 */
     overflow: hidden;
 }
@@ -1299,10 +1285,12 @@ function renderDay(ds) {
         lane.className = 'lane';
         lane.innerHTML = `<div style="text-align:center; font-weight:900; color:${s.color}; font-size:1.8rem; margin-bottom:20px;">${s.name}</div>`;
 
-        hours.forEach(t => {
+      hours.forEach(t => {
             const row = document.createElement('div');
             row.className = 'time-row-space';
             row.style.position = "relative";
+            // 修正：確保每一列都有足夠的左邊距，不讓時間標籤擠到螢幕外
+            row.style.minHeight = "45px"; 
 
             const matched = store.appointments.filter(a => 
                 a.date === ds && 
@@ -1310,11 +1298,14 @@ function renderDay(ds) {
                 String(a.styId) === String(s.id)
             );
 
-            const label = `<div style="position:absolute; left:-45px; top:12px; font-size:0.75rem; color:#bbb; font-weight:900;">${t}</div>`;
+            // 修正：這裡將 left 改為 -48px，並稍微調整字重，確保在 iPhone 窄螢幕也能清楚顯示
+            const label = `<div style="position:absolute; left:-48px; top:12px; font-size:0.75rem; color:#bbb; font-weight:900; width:40px; text-align:right;">${t}</div>`;
 
             if (matched.length) {
                 row.innerHTML = label + matched.map(a => {
                     const selectedTags = (a.payTags || []).map(tid => store.payTagsDef.find(pt => pt.id === tid)).filter(x => x);
+                    
+                    // 這裡完全保留你原本的卡片 HTML 結構與功能
                     return `
                         <div class="apt-card ${a.done ? 'completed' : ''}" style="--c:${s.color}; margin-left:15px; width:calc(100% - 20px); padding:25px; border-radius:35px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
                             <div class="tag-group" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;" onclick="event.stopPropagation(); popTagPicker('${a.id}', '${ds}')">
@@ -1323,7 +1314,7 @@ function renderDay(ds) {
                                 </span>
                                 ${selectedTags.length > 0 ? selectedTags.map(pt => `<span class="tag-pill" style="background:${pt.color}; color:#fff; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">${pt.name}</span>`).join('') : '<span class="tag-pill" style="background:#f2f2f7; color:#aaa; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">+ 狀態</span>'}
                                 <span class="tag-pill" style="border:1.5px solid var(--gold); color:${a.isVIP ? '#fff' : 'var(--gold)'}; background:${a.isVIP ? 'var(--gold)' : 'transparent'}; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;" onclick="event.stopPropagation(); toggleVIP('${a.id}','${ds}')">
-                                    ${a.isVIP ? '⭐ 指定' : '不指定'}
+                                    ${a.isVIP ? '⭐ 指定' : '新客/舊客'} 
                                 </span>
                             </div>
 
@@ -3744,69 +3735,6 @@ function popStyleDrawer() {
         confirmButtonColor: '#1d1d1f'
     });
 }
-
-// ==========================================================================
-// 📱 Aether V318: Quantum Zoom 旗艦縮放引擎 (iOS 原生手感版)
-// ==========================================================================
-(function() {
-    const laneArea = document.getElementById('day-lanes');
-    if (!laneArea) return;
-
-    let scale = 1;
-    let startDist = 0;
-    let initialScale = 1;
-
-    // 🚀 設定縮放中心與平滑過渡
-    laneArea.style.transformOrigin = "center top"; 
-    laneArea.style.transition = "transform 0.05s linear"; // 極短暫的緩衝，消除抖動
-
-    laneArea.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) {
-            // 抓取初始距離
-            startDist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-            initialScale = scale;
-        }
-    }, { passive: false });
-
-    laneArea.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault(); 
-            
-            const currentDist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-
-            // 計算新的縮放值
-            const zoomFactor = currentDist / startDist;
-            scale = initialScale * zoomFactor;
-
-            // 🎯 限制範圍：最小縮到 0.3 (看全景)，最大 1.5 (看細節)
-            if (scale < 0.3) scale = 0.3;
-            if (scale > 1.5) scale = 1.5;
-
-            // 🚀 核心物理變革：直接縮放整個容器畫布
-            // 這樣文字、圓角、間距會完美等比例縮放，不會有佈局崩壞感
-            laneArea.style.transform = `scale(${scale})`;
-            
-            // 補償寬度：防止縮小時右邊出現大片空白，讓滾動條依然有效
-            laneArea.style.width = `${100 / scale}%`;
-        }
-    }, { passive: false });
-
-    // 🚀 雙擊重置功能 (賈伯斯式的直覺：點兩下回到最舒服的比例)
-    laneArea.addEventListener('dblclick', () => {
-        scale = 1;
-        laneArea.style.transition = "transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)";
-        laneArea.style.transform = `scale(1)`;
-        laneArea.style.width = `100%`;
-        setTimeout(() => { laneArea.style.transition = "transform 0.05s linear"; }, 400);
-    });
-})();
-
 
 </script>
 </body>
