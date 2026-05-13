@@ -3338,24 +3338,13 @@ async function popTagPicker(aptId, ds) {
         preConfirm: () => window.tmpSelected
     });
 
-   if (selectedIds) {
-            // 1. 🚀 先記住目前捲軸位置
-            const scrollContainer = document.getElementById('day-lanes');
-            const scrollPos = scrollContainer ? scrollContainer.scrollLeft : 0;
+    if (selectedIds) {
+        a.payTags = selectedIds;
+        await saveS();
+        renderDay(ds);
+    }
+}
 
-            // 2. 執行存檔與重畫
-            a.payTags = selectedIds;
-            await saveS();
-            renderDay(ds);
-
-            // 3. 🚀 立即釘回原位，解決閃跳
-            if (scrollContainer) {
-                scrollContainer.scrollLeft = scrollPos;
-                requestAnimationFrame(() => {
-                    scrollContainer.scrollLeft = scrollPos;
-                });
-            }
-        }
 // --- 🚀 V318 旗艦版：支付標籤切換 (純 UI 渲染) ---
 function toggleSwalTag(id, color) {
     window.tmpSelected = window.tmpSelected || [];
