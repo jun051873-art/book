@@ -1259,9 +1259,14 @@ function toggleTempTag(tagName) {
 // --- S6: 跑道渲染與顧客搜尋 (以太精緻版 + 老婆門禁 + 功能全開) ---
 // ==========================================================================
 function renderDay(ds) {
-    // 🚀 記憶空間：重畫前記住現在橫向滑動到哪裡
+    // 🚀 【三重複制物理釘子】在清空重畫前，把左右滑動 (Left) 與 上下滑動 (Top) 座標死死釘住！
     const scrollContainer = document.getElementById('day-lanes');
-    const scrollPos = scrollContainer ? scrollContainer.scrollLeft : 0;
+    const scrollPosLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+    const scrollPosTop = scrollContainer ? scrollContainer.scrollTop : 0;
+    
+    // 同時死死抓住 iOS 外層全域橡皮筋容器的滾動高度，徹底終結閃跳頂部問題
+    const mainScroll = document.querySelector('.content-scroll');
+    const mainScrollTop = mainScroll ? mainScroll.scrollTop : 0;
 
     const days = ['日', '一', '二', '三', '四', '五', '六'];
     const dayTitleEl = document.getElementById('day-title');
@@ -1276,7 +1281,6 @@ function renderDay(ds) {
     const end = parseInt(store.endH || '23'); 
     const hours = [];
     for (let i = start; i <= end; i++) {
-        // 🚀 關鍵：確保顯示為 00:00, 01:00... 格式
         hours.push(`${String(i).padStart(2, '0')}:00`);
     }
 
@@ -1285,11 +1289,10 @@ function renderDay(ds) {
         lane.className = 'lane';
         lane.innerHTML = `<div style="text-align:center; font-weight:900; color:${s.color}; font-size:1.8rem; margin-bottom:20px;">${s.name}</div>`;
 
-      hours.forEach(t => {
+        hours.forEach(t => {
             const row = document.createElement('div');
             row.className = 'time-row-space';
             row.style.position = "relative";
-            // 修正：確保每一列都有足夠的左邊距，不讓時間標籤擠到螢幕外
             row.style.minHeight = "45px"; 
 
             const matched = store.appointments.filter(a => 
@@ -1298,14 +1301,11 @@ function renderDay(ds) {
                 String(a.styId) === String(s.id)
             );
 
-            // 修正：這裡將 left 改為 -48px，並稍微調整字重，確保在 iPhone 窄螢幕也能清楚顯示
             const label = `<div style="position:absolute; left:-48px; top:12px; font-size:0.75rem; color:#bbb; font-weight:900; width:40px; text-align:right;">${t}</div>`;
 
             if (matched.length) {
                 row.innerHTML = label + matched.map(a => {
                     const selectedTags = (a.payTags || []).map(tid => store.payTagsDef.find(pt => pt.id === tid)).filter(x => x);
-                    
-                    // 這裡完全保留你原本的卡片 HTML 結構與功能
                     return `
                         <div class="apt-card ${a.done ? 'completed' : ''}" style="--c:${s.color}; margin-left:15px; width:calc(100% - 20px); padding:25px; border-radius:35px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
                             <div class="tag-group" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;" onclick="event.stopPropagation(); popTagPicker('${a.id}', '${ds}')">
@@ -1314,7 +1314,7 @@ function renderDay(ds) {
                                 </span>
                                 ${selectedTags.length > 0 ? selectedTags.map(pt => `<span class="tag-pill" style="background:${pt.color}; color:#fff; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">${pt.name}</span>`).join('') : '<span class="tag-pill" style="background:#f2f2f7; color:#aaa; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">+ 狀態</span>'}
                                 <span class="tag-pill" style="border:1.5px solid var(--gold); color:${a.isVIP ? '#fff' : 'var(--gold)'}; background:${a.isVIP ? 'var(--gold)' : 'transparent'}; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;" onclick="event.stopPropagation(); toggleVIP('${a.id}','${ds}')">
-                                    ${a.isVIP ? '⭐ 指定' : '不指定'} 
+                                    ${a.isVIP ? '⭐ 指定' : '不指定'}
                                 </span>
                             </div>
 
@@ -1351,11 +1351,15 @@ function renderDay(ds) {
         area.appendChild(lane);
     });
 
-    // 🚀 空間還原：重畫完後，雙重幀同步閃回原本滑動的位置
+    // 🚀 【直覺還原】雙重畫面偵同步還原：無論手滑到哪裡，修改完後一微秒內強制校正，眼睛完全察覺不到位移
     if (scrollContainer) {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                scrollContainer.scrollLeft = scrollPos;
+                scrollContainer.scrollLeft = scrollPosLeft;
+                scrollContainer.scrollTop = scrollPosTop; // 👈 釘死跑道上下滾動
+                if (mainScroll) {
+                    mainScroll.scrollTop = mainScrollTop; // 👈 釘死 iOS 外層主捲軸
+                }
             });
         });
     }
