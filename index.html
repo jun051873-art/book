@@ -1259,14 +1259,10 @@ function toggleTempTag(tagName) {
 // --- S6: 跑道渲染與顧客搜尋 (以太精緻版 + 老婆門禁 + 功能全開) ---
 // ==========================================================================
 function renderDay(ds) {
-    // 🚀 【三重複制物理釘子】在清空重畫前，把左右滑動 (Left) 與 上下滑動 (Top) 座標死死釘住！
+    // 🚀 核心物理釘子：只鎖定跑道容器本身的左右(Left)與上下(Top)滾動像素，不碰外層網頁，徹底解決修改時往上跳的問題！
     const scrollContainer = document.getElementById('day-lanes');
     const scrollPosLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
     const scrollPosTop = scrollContainer ? scrollContainer.scrollTop : 0;
-    
-    // 同時死死抓住 iOS 外層全域橡皮筋容器的滾動高度，徹底終結閃跳頂部問題
-    const mainScroll = document.querySelector('.content-scroll');
-    const mainScrollTop = mainScroll ? mainScroll.scrollTop : 0;
 
     const days = ['日', '一', '二', '三', '四', '五', '六'];
     const dayTitleEl = document.getElementById('day-title');
@@ -1276,7 +1272,7 @@ function renderDay(ds) {
     if (!area) return;
     area.innerHTML = '';
 
-    // --- 修改後的跑道時段生成 ---
+    // --- 跑道時段生成 ---
     const start = parseInt(store.startH || '0'); 
     const end = parseInt(store.endH || '23'); 
     const hours = [];
@@ -1351,15 +1347,12 @@ function renderDay(ds) {
         area.appendChild(lane);
     });
 
-    // 🚀 【直覺還原】雙重畫面偵同步還原：無論手滑到哪裡，修改完後一微秒內強制校正，眼睛完全察覺不到位移
+    // 🚀 物理空間還原：利用雙重幀，在卡片重新渲染完的瞬間，把跑道容器的 X 軸與 Y 軸拉回原位，畫面會像按了定格鍵一樣穩！
     if (scrollContainer) {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
                 scrollContainer.scrollLeft = scrollPosLeft;
-                scrollContainer.scrollTop = scrollPosTop; // 👈 釘死跑道上下滾動
-                if (mainScroll) {
-                    mainScroll.scrollTop = mainScrollTop; // 👈 釘死 iOS 外層主捲軸
-                }
+                scrollContainer.scrollTop = scrollPosTop;
             });
         });
     }
