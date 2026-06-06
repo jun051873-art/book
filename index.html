@@ -1052,7 +1052,7 @@ function handleStatsMonthChange(newVal) {
 // ==========================================================================
 
 async function popBooking(n="", p="", sId=null, editId=null) {
-    // 🚀 【 iOS 防跳第一防線 】在打開彈窗的絕對第一時間，先死死鎖定住背景跑道容器目前的左右與上下滾動像素
+    // 🚀 【 iOS 防跳第一防線 】點擊 Pen 的絕對第一時間，死死鎖定住背景跑道容器目前的左右與上下滾動像素
     const scrollContainer = document.getElementById('day-lanes');
     const scrollPosLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
     const scrollPosTop = scrollContainer ? scrollContainer.scrollTop : 0;
@@ -1114,7 +1114,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
 
                 <div style="margin-bottom:18px;">
                     <div id="tag-drawer-trigger" onclick="toggleTagDrawer()" style="background:rgba(212,175,55,0.1); border:1.5px solid var(--gold); padding:18px 25px; border-radius:25px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:900; color:var(--gold); font-size:1.1rem;"> 選擇服務項目</span>
+                        <span style="font-weight:900; colorvar(--gold); font-size:1.1rem;"> 選擇服務項目</span>
                         <i id="tag-arrow" class="fas fa-chevron-down" style="color:var(--gold);"></i>
                     </div>
                     <div id="tag-drawer-content" style="display:none; margin-top:10px; background:rgba(0,0,0,0.03); padding:15px; border-radius:25px; max-height:180px; overflow-y:auto; -webkit-overflow-scrolling:touch;">
@@ -1145,7 +1145,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
         cancelButtonColor: '#e5e5ea',
         reverseButtons: true,
         didOpen: () => {
-            // 🚀 【 iOS 防跳第三防線 】在彈窗剛跳出來的微秒瞬間，立刻強制還原底層跑道的滾動坐標，死死壓制住任何跳動！
+            // 🚀 【 iOS 防跳第三防線 】在彈窗剛跳出來的微秒瞬間，立刻強制還原跑道的滾動高度，完美壓制 iOS 原生回彈！
             if (scrollContainer) {
                 scrollContainer.scrollLeft = scrollPosLeft;
                 scrollContainer.scrollTop = scrollPosTop;
@@ -1173,7 +1173,6 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                 n: n,
                 sex: document.getElementById('pop-sex').value,
                 p: document.getElementById('pop-p')?.value || "",
-                // 🚀 修正：從 pop-c 取得實際人數數值
                 c: document.getElementById('pop-c')?.value || "1", 
                 styId: document.getElementById('pop-s').value,
                 price: document.getElementById('pop-price')?.value || "0",
