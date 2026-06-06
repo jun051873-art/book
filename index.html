@@ -1052,6 +1052,11 @@ function handleStatsMonthChange(newVal) {
 // ==========================================================================
 
 async function popBooking(n="", p="", sId=null, editId=null) {
+    // 🚀 【 iOS 防跳第一防線 】在打開彈窗的絕對第一時間，先死死鎖定住背景跑道容器目前的左右與上下滾動像素
+    const scrollContainer = document.getElementById('day-lanes');
+    const scrollPosLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
+    const scrollPosTop = scrollContainer ? scrollContainer.scrollTop : 0;
+
     // 🚀 鋼鐵防禦：副裝置(員工)離線攔截補丁
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     const isOnline = window.navigator.onLine;
@@ -1073,22 +1078,21 @@ async function popBooking(n="", p="", sId=null, editId=null) {
         title: editId ? '修改預約' : '新增預約',
         width: '95%',
         padding: '2rem 1.5rem',
+        // 🚀 【 iOS 防跳第二防線 】強制關閉 SweetAlert 沒收全域捲軸的補償機制，徹底禁止 iOS 亂動外層高度
+        scrollbarPadding: false, 
         html: `
             <div style="text-align:left; position:relative;">
-                <!-- 姓名搜尋框 -->
                 <div style="position:relative; margin-bottom:18px; z-index:10001 !important;">
                     <input id="pop-n" class="luxe-btn" style="width:100%; border-radius:25px; font-size:1.4rem; height:65px;" value="${n}" placeholder="顧客姓名" oninput="searchStored(this, 'pop-box')" autocomplete="off">
                     <div id="pop-box" class="suggest-box"></div>
                 </div>
 
-                <!-- 性別切換 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <div id="pop-boy" class="gender-btn ${apt?.sex==='M'?'active-boy':''}" style="height:55px; font-size:1.1rem;" onclick="setSexPop('M')">♂ 男</div>
                     <div id="pop-girl" class="gender-btn ${(!apt || apt?.sex==='F')?'active-girl':''}" style="height:55px; font-size:1.1rem;" onclick="setSexPop('F')">♀ 女</div>
                 </div>
                 <input type="hidden" id="pop-sex" value="${apt?.sex || 'F'}">
 
-                <!-- 電話號碼 與 人數 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <div style="flex:2.5; position:relative;">
                         <input id="pop-p" class="luxe-btn" style="width:100%; border-radius:25px; height:60px; font-size:1.2rem;" 
@@ -1101,7 +1105,6 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                     </div>
                 </div>
 
-                <!-- 設計師與金額 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <select id="pop-s" class="luxe-btn" style="flex:1.5; border-radius:25px; height:60px; font-size:1.2rem;">
                         ${store.stylists.map(s => `<option value="${s.id}" ${String(sId||apt?.styId)===String(s.id)?'selected':''}>${s.name}</option>`).join('')}
@@ -1109,7 +1112,6 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                     <input id="pop-price" type="number" class="luxe-btn" style="flex:1; border-radius:25px; height:60px; text-align:center; font-size:1.2rem;" value="${apt?.price || ''}" placeholder="金額 $">
                 </div>
 
-                <!-- 服務項目抽屜 -->
                 <div style="margin-bottom:18px;">
                     <div id="tag-drawer-trigger" onclick="toggleTagDrawer()" style="background:rgba(212,175,55,0.1); border:1.5px solid var(--gold); padding:18px 25px; border-radius:25px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
                         <span style="font-weight:900; color:var(--gold); font-size:1.1rem;"> 選擇服務項目</span>
@@ -1124,7 +1126,6 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                     </div>
                 </div>
 
-                <!-- 日期與時間 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <input id="pop-d" type="date" class="luxe-btn" style="flex:1.2; border-radius:25px; height:60px;" value="${apt?.date || curD.toLocaleDateString('sv')}">
                     <input id="pop-t" type="time" class="luxe-btn" style="flex:1; border-radius:25px; height:60px;" value="${apt?.time || '11:00'}">
@@ -1144,6 +1145,12 @@ async function popBooking(n="", p="", sId=null, editId=null) {
         cancelButtonColor: '#e5e5ea',
         reverseButtons: true,
         didOpen: () => {
+            // 🚀 【 iOS 防跳第三防線 】在彈窗剛跳出來的微秒瞬間，立刻強制還原底層跑道的滾動坐標，死死壓制住任何跳動！
+            if (scrollContainer) {
+                scrollContainer.scrollLeft = scrollPosLeft;
+                scrollContainer.scrollTop = scrollPosTop;
+            }
+
             const container = Swal.getHtmlContainer();
             container.addEventListener('click', (e) => {
                 if(e.target.id !== 'pop-n') {
@@ -1199,7 +1206,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
 
         // 如果不是 Pro 且預約已達 2 筆，攔截！
         if (!isPro && store.appointments.length >= 2 && !editId) {
-            Swal.fire({ icon: 'lock', title: 'Aether Pro 專屬', text: '試用版預約上限為 2 筆，請聯繫管理員激活系統。', confirmButtonColor: '#1d1d1f' });
+            Swal.fire({ icon: 'lock', title: 'Aether Pro 專專屬', text: '試用版預約上限為 2 筆，請聯繫管理員激活系統。', confirmButtonColor: '#1d1d1f' });
             return;
         }
 
