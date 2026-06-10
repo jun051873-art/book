@@ -1321,8 +1321,7 @@ function renderDay(ds) {
                             </div>
 
                             <div style="position:absolute; right:20px; top:20px; display:flex; gap:15px; align-items:center;">
-                                <i class="fas fa-pen" style="color:#ccc; font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); popBooking('${a.n}','${a.p}','${a.styId}','${a.id}')"></i>
-                                <i class="fas fa-trash-alt" style="color:rgba(255,0,0,0.15); font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); confirmDelApt('${a.id}','${ds}')"></i>
+                            <i class="fas fa-pen" style="color:#ccc; font-size:1.1rem; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); popBooking('${a.n}','${a.p}','${a.styId}','${a.id}')"></i>                                <i class="fas fa-trash-alt" style="color:rgba(255,0,0,0.15); font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); confirmDelApt('${a.id}','${ds}')"></i>
                                 <i class="fas fa-check-circle" style="color:${a.done ? 'var(--gold)' : '#eee'}; font-size:1.8rem; cursor:pointer;" onclick="event.stopPropagation(); toggleAptDone('${a.id}','${ds}')"></i>
                             </div>
 
@@ -2851,6 +2850,7 @@ window.addEventListener('load', async () => {
         if (e.target.closest('.swal2-container') || 
             e.target.closest('.content-scroll') || 
             e.target.closest('.lane-container') ||
+            e.target.closest('#day-lanes') || // 👈 補上這行：精准放行跑道時段區
             e.target.tagName === 'INPUT' || 
             e.target.tagName === 'TEXTAREA' ||
             e.target.tagName === 'SELECT') {
