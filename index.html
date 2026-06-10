@@ -226,10 +226,12 @@ background: #f9f9fb !important;
 
 .lane {
     flex: 1;
-    min-width: 300px !important; /* 👈 升級為 300px 固定寬度，大器不擠壓 */
+    min-width: 300px !important; 
     display: flex;
     flex-direction: column;
-    gap: 25px; /* 🚀 卡片與卡片之間的上下空隙加大，極具高級呼吸感 */
+    gap: 25px;
+    flex-shrink: 0; /* 👈 關鍵：防止預約卡片過多時，系統強制壓縮卡片寬度導致按鈕被擠掉 */
+    overflow: visible !important; /* 👈 關鍵：確保按鈕不會被視為超出卡片範圍而被裁剪 */
 }
 
 /* 🚀 調整時段格物理高度，移除原卡片內任何會打架的 transform scale 公式 */
@@ -1326,10 +1328,11 @@ function renderDay(ds) {
                                 </span>
                             </div>
 
-                            <div style="position:absolute; right:20px; top:20px; display:flex; gap:15px; align-items:center;">
-                            <i class="fas fa-pen" style="color:#ccc; font-size:1.1rem; cursor:pointer;" onclick="event.preventDefault(); event.stopPropagation(); popBooking('${a.n}','${a.p}','${a.styId}','${a.id}')"></i>                                <i class="fas fa-trash-alt" style="color:rgba(255,0,0,0.15); font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); confirmDelApt('${a.id}','${ds}')"></i>
-                                <i class="fas fa-check-circle" style="color:${a.done ? 'var(--gold)' : '#eee'}; font-size:1.8rem; cursor:pointer;" onclick="event.stopPropagation(); toggleAptDone('${a.id}','${ds}')"></i>
-                            </div>
+                        <div style="position:absolute; right:10px; top:10px; display:flex; gap:8px; align-items:center; z-index:999 !important; background:rgba(255,255,255,0.7); padding:5px; border-radius:12px; backdrop-filter:blur(5px);">
+    <i class="fas fa-pen" style="color:#1d1d1f; font-size:1.2rem; cursor:pointer; padding:5px;" onclick="event.preventDefault(); event.stopPropagation(); popBooking('${a.n}','${a.p}','${a.styId}','${a.id}')"></i>
+    <i class="fas fa-trash-alt" style="color:#ff3b30; font-size:1.2rem; cursor:pointer; padding:5px;" onclick="event.stopPropagation(); confirmDelApt('${a.id}','${ds}')"></i>
+    <i class="fas fa-check-circle" style="color:${a.done ? 'var(--gold)' : '#ccc'}; font-size:1.5rem; cursor:pointer; padding:5px;" onclick="event.stopPropagation(); toggleAptDone('${a.id}','${ds}')"></i>
+</div>
 
                             <div style="font-weight:900; color:var(--gold); font-size:1rem; letter-spacing:1px; margin-bottom:5px;">${a.time}</div>
                             <div style="font-weight:900; font-size:2rem; color:#1d1d1f; margin-bottom:12px; letter-spacing:-1px;">${a.n}</div>
