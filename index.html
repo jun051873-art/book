@@ -212,40 +212,47 @@ background: #f9f9fb !important;
     font-weight: 800 !important;
 }
         .suggest-item { padding: 15px 20px; border-bottom: 0.5px solid #eee; font-weight: 900; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
-/* 🚀 V318：回歸穩定跑道，刪除縮放變數 */
+/* 🚀 V318 Premium：還原最精品、大器穩定的時段跑道佈局 */
 .lane-container {
     display: flex;
-    overflow-x: auto;
-    padding: 20px 20px 20px 50px !important; /* 👈 左側增加 50px，給時間標籤預留呼吸空間 */
-    gap: 15px !important;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: auto !important;
+    overflow-y: auto !important; /* 開啟跑道原生垂直滑動 */
+    padding: 25px 20px 180px 75px !important; /* 👈 加大左側到 75px，讓 00:00 時間標籤絕對大器不擠壓 */
+    gap: 25px !important; /* 加大跑道之間的橫向間距 */
+    -webkit-overflow-scrolling: touch !important;
     align-items: flex-start;
+    height: calc(100vh - 110px); /* 賦予專屬物理高度 */
 }
 
 .lane {
     flex: 1;
-    min-width: 280px !important; /* 👈 固定寬度，不再縮放，確保視覺穩定 */
+    min-width: 300px !important; /* 👈 升級為 300px 固定寬度，大器不擠壓 */
     display: flex;
     flex-direction: column;
-    gap: 15px;
-    /* 移除所有 transform 相關代碼 */
+    gap: 25px; /* 🚀 卡片與卡片之間的上下空隙加大，極具高級呼吸感 */
 }
 
-/* 修正時間標籤，確保 00:00 不會被切掉 */
+/* 🚀 調整時段格物理高度，移除原卡片內任何會打架的 transform scale 公式 */
+.time-row-space {
+    min-height: 250px !important; /* 🚀 格子大幅拉高，給卡片最尊榮的舒展空間 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+
+/* 精準修正時間標籤字型與對齊，極具科技感 */
 .time-row-space::before {
-    content: attr(data-time); /* 透過 HTML 屬性抓取時間 */
+    content: attr(data-time); 
     position: absolute;
-    left: -48px; /* 移至左側預留空間 */
-    top: 10px;
-    font-size: 0.8rem;
+    left: -58px; /* 🚀 完美退到左側空白區，絕不與卡片產生排版重疊 */
+    top: 15px;
+    font-size: 0.85rem;
     font-weight: 900;
-    color: #ccc;
-    letter-spacing: -0.5px;
-
-    /* 防止卡片內的文字因為縮小而換行亂掉 */
-    overflow: hidden;
+    color: #bbb;
+    letter-spacing: 0px;
 }
-        /* --- 【Aether Flow 美學語言：比例優化版】 --- */
+       
         /* --- Aether Flow: 核心導航整合 --- */
        .nav {
     position: fixed !important;
@@ -1351,13 +1358,23 @@ function renderDay(ds) {
         area.appendChild(lane);
     });
 
-    // 🚀 物理空間還原：利用雙重幀，在卡片重新渲染完的瞬間，把跑道容器的 X 軸與 Y 軸拉回原位，畫面會像按了定格鍵一樣穩！
+   // 🚀 物理空間還原：利用強制鎖定與樣式覆蓋，防止 iOS 彈窗奪取捲軸控制權
     if (scrollContainer) {
+        // 1. 強制還原捲軸位置
+        scrollContainer.scrollLeft = scrollPosLeft;
+        scrollContainer.scrollTop = scrollPosTop;
+        
+        // 2. 這是關鍵：強迫 iOS 在重繪後，將外層容器的滾動條鎖在記憶位置
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                scrollContainer.scrollLeft = scrollPosLeft;
-                scrollContainer.scrollTop = scrollPosTop;
-            });
+            scrollContainer.scrollLeft = scrollPosLeft;
+            scrollContainer.scrollTop = scrollPosTop;
+            
+            // 3. 額外加入對外層 .content-scroll 的保護
+            const mainScroll = document.querySelector('.content-scroll');
+            if (mainScroll) {
+                // 如果彈窗觸發了 body 變動，強制將主視窗高度撐住
+                mainScroll.style.minHeight = "100vh"; 
+            }
         });
     }
 }
