@@ -3652,6 +3652,58 @@ function popStyleDrawer() {
     });
 }
 
+// 🚀 核心：唯一的即時同步引擎 (取代所有 setInterval)
+function initRealtimeSync() {
+    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    if (!auth || !auth.id) return;
+
+    // Firebase 的即時監聽，這會讓所有裝置同時收到訊號
+    db.collection("Salons").doc(auth.id).onSnapshot((doc) => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
+            
+            // 只有雲端資料比本地新，才更新 (避免循環更新)
+            if (cloudData.lastUpdate > (localData.lastUpdate || 0)) {
+                console.log("⚡ 偵測到雲端異動，正在自動更新 UI...");
+                store = cloudData;
+                localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store));
+                
+                // 強制執行一次 UI 重繪
+                updateStoreUI();
+                initMonth();
+                if(document.getElementById('pg-day')?.classList.contains('active')) renderDay(curD.toLocaleDateString('sv'));
+                if(document.getElementById('pg-cli')?.classList.contains('active')) renderCli();
+                if(document.getElementById('pg-set')?.classList.contains('active')) renderSet();
+            }
+        }
+    });
+}
+
+// 🚀 啟動邏輯 (請檢查您的 window.addEventListener('load', ...))
+window.addEventListener('load', async () => {
+    updateStoreUI(); 
+    initMonth();
+    renderCli();
+    
+    // 1. 先抓一次最新的
+    await pullFromCloud(); 
+    
+    // 2. 啟動即時監聽 (只要雲端一變，這邊會自動更新)
+    initRealtimeSync(); 
+    
+    // 3. 檢查權限
+    checkLicense();
+    
+    // 4. 安全監控 (只負責封鎖，不負責同步)
+    // 這裡可以保留您原本的 startSecurityHeartbeat，
+    // 但請進去把裡面的 setInterval 裡面的同步邏輯刪掉，只留 if (isBlock) ...
+    if (typeof startSecurityHeartbeat === 'function') startSecurityHeartbeat();
+    
+    // ... 後面剩下的 touchmove ...
+});
+
+
 </script>
 </body>
 </html>
