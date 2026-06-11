@@ -1360,12 +1360,23 @@ function renderDay(ds) {
         area.appendChild(lane);
     });
 
-    // 🚀 空間還原：重畫完後，雙重幀同步閃回原本滑動的位置
+    // 🚀 物理空間還原：利用強制鎖定與樣式覆蓋，防止 iOS 彈窗奪取捲軸控制權
     if (scrollContainer) {
+        // 1. 強制還原捲軸位置
+        scrollContainer.scrollLeft = scrollPosLeft;
+        scrollContainer.scrollTop = scrollPosTop;
+        
+        // 2. 這是關鍵：強迫 iOS 在重繪後，將外層容器的滾動條鎖在記憶位置
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => {
-                scrollContainer.scrollLeft = scrollPos;
-            });
+            scrollContainer.scrollLeft = scrollPosLeft;
+            scrollContainer.scrollTop = scrollPosTop;
+            
+            // 3. 額外加入對外層 .content-scroll 的保護
+            const mainScroll = document.querySelector('.content-scroll');
+            if (mainScroll) {
+                // 如果彈窗觸發了 body 變動，強制將主視窗高度撐住
+                mainScroll.style.minHeight = "100vh"; 
+            }
         });
     }
 }
