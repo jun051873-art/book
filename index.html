@@ -2841,6 +2841,10 @@ window.addEventListener('load', async () => {
     initMonth();
     renderCli();
     
+    // 🚀 確保這行已經加入，這才是啟動巡邏的開關
+    if (typeof startUnifiedPatrol === 'function') {
+        startUnifiedPatrol();
+    }
     // 初始化月份選擇器
     const mPicker = document.getElementById('m-picker');
     if(mPicker) mPicker.value = new Date().toISOString().slice(0,7);
@@ -3761,6 +3765,34 @@ function popStyleDrawer() {
         confirmButtonText: '我知道了',
         confirmButtonColor: '#1d1d1f'
     });
+}
+
+// 🚀 20秒自動同步與巡邏兵
+function startUnifiedPatrol() {
+    console.log("📡 自動巡邏兵已就位...");
+    setInterval(async () => {
+        if (window.navigator.onLine && !window.IS_LOCKED_VACUUM) {
+            const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+            if (!auth || !auth.id || auth.id === "未綁定") return;
+            
+            try {
+                const snap = await db.collection("Salons").doc(auth.id).get();
+                if (snap.exists) {
+                    const cloudData = snap.data();
+                    const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
+                    // 如果雲端時間比本機新，自動抓取並更新畫面
+                    if (cloudData.lastUpdate > (localData.lastUpdate || 0)) {
+                        console.log("📥 偵測到雲端更新，自動對齊...");
+                        store = cloudData;
+                        localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store));
+                        updateStoreUI();
+                        initMonth();
+                        if(document.getElementById('pg-day').classList.contains('active')) renderDay(curD.toLocaleDateString('sv'));
+                    }
+                }
+            } catch (e) { console.warn("巡邏兵開小差了...", e); }
+        }
+    }, 3000); 
 }
 
 </script>
