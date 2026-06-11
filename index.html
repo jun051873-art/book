@@ -91,6 +91,7 @@ html, body {
     height: 100%; width: 100%; margin: 0; padding: 0; 
     /* 這裡要保留，防止整片背景彈跳 */
     overflow: hidden !important; 
+    position: fixed !important; 
     /* 修改這裡，背景有深度，毛玻璃才會漂亮 */
 background: #f9f9fb !important;
 }
@@ -212,49 +213,54 @@ background: #f9f9fb !important;
     font-weight: 800 !important;
 }
         .suggest-item { padding: 15px 20px; border-bottom: 0.5px solid #eee; font-weight: 900; font-size: 1.2rem; cursor: pointer; color: var(--primary); }
-/* 🚀 V318 Premium：還原最精品、大器穩定的時段跑道佈局 */
+/* 🚀 Aether V318: 極限物理縮放樣式 */
 .lane-container {
     display: flex;
-    overflow-x: auto !important;
-    overflow-y: auto !important; /* 開啟跑道原生垂直滑動 */
-    padding: 25px 20px 180px 75px !important; /* 👈 加大左側到 75px，讓 00:00 時間標籤絕對大器不擠壓 */
-    gap: 25px !important; /* 加大跑道之間的橫向間距 */
-    -webkit-overflow-scrolling: touch !important;
+    overflow-x: auto;
+    padding: 20px !important; /* 👈 縮小邊距，把更多空間留給內容 */
+    gap: var(--lane-gap) !important;
+    transition: none !important; /* 👈 確保手指捏的時候零延遲 */
     align-items: flex-start;
-    height: calc(100vh - 110px); /* 賦予專屬物理高度 */
 }
 
 .lane {
     flex: 1;
-    min-width: 300px !important; 
+    min-width: var(--lane-w) !important;
     display: flex;
     flex-direction: column;
-    gap: 25px;
-    flex-shrink: 0; /* 👈 關鍵：防止預約卡片過多時，系統強制壓縮卡片寬度導致按鈕被擠掉 */
-    overflow: visible !important; /* 👈 關鍵：確保按鈕不會被視為超出卡片範圍而被裁剪 */
+    gap: 20px;
+    transform-origin: top left; /* 👈 縮放原點，保證放大時不跑偏 */
+    transition: none !important;
+    white-space: nowrap; /* 👈 縮小時名字不換行，維持上帝視角的整潔 */
 }
-
-/* 🚀 調整時段格物理高度，移除原卡片內任何會打架的 transform scale 公式 */
-.time-row-space {
-    min-height: 250px !important; /* 🚀 格子大幅拉高，給卡片最尊榮的舒展空間 */
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+ 
+     .time-row-space { min-height: 240px; display: flex; flex-direction: row; gap: 12px; align-items: stretch; }
+    .apt-card {
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(30px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(30px) saturate(180%) !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.4) !important;
+    border-radius: 40px;
+    border-left: 15px solid var(--c);
     position: relative;
-}
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
 
-/* 精準修正時間標籤字型與對齊，極具科技感 */
-.time-row-space::before {
-    content: attr(data-time); 
-    position: absolute;
-    left: -58px; /* 🚀 完美退到左側空白區，絕不與卡片產生排版重疊 */
-    top: 15px;
-    font-size: 0.85rem;
-    font-weight: 900;
-    color: #bbb;
-    letter-spacing: 0px;
+    /* 🚀 物理縮放核心補丁 */
+    transition: none !important; /* 👈 移除 transition，縮放才不會有殘影 */
+    transform: scale(var(--apt-scale)); /* 👈 讓內容跟著手指變大變小 */
+    transform-origin: top left; /* 👈 縮放基準點鎖死左上角 */
+    
+    /* 🚀 寬度補償公式：防止縮小時卡片橫向跟著縮水 */
+    width: calc(100% / var(--apt-scale)) !important; 
+    
+    /* 防止卡片內的文字因為縮小而換行亂掉 */
+    overflow: hidden;
 }
-       
+        /* --- 【Aether Flow 美學語言：比例優化版】 --- */
         /* --- Aether Flow: 核心導航整合 --- */
        .nav {
     position: fixed !important;
@@ -1060,11 +1066,6 @@ function handleStatsMonthChange(newVal) {
 // ==========================================================================
 
 async function popBooking(n="", p="", sId=null, editId=null) {
-    // 🚀 【 iOS 防跳第一防線 】點擊 Pen 的絕對第一時間，死死鎖定住背景跑道容器目前的左右與上下滾動像素
-    const scrollContainer = document.getElementById('day-lanes');
-    const scrollPosLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
-    const scrollPosTop = scrollContainer ? scrollContainer.scrollTop : 0;
-
     // 🚀 鋼鐵防禦：副裝置(員工)離線攔截補丁
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     const isOnline = window.navigator.onLine;
@@ -1086,21 +1087,22 @@ async function popBooking(n="", p="", sId=null, editId=null) {
         title: editId ? '修改預約' : '新增預約',
         width: '95%',
         padding: '2rem 1.5rem',
-        // 🚀 【 iOS 防跳第二防線 】強制關閉 SweetAlert 沒收全域捲軸的補償機制，徹底禁止 iOS 亂動外層高度
-        scrollbarPadding: false, 
         html: `
             <div style="text-align:left; position:relative;">
+                <!-- 姓名搜尋框 -->
                 <div style="position:relative; margin-bottom:18px; z-index:10001 !important;">
                     <input id="pop-n" class="luxe-btn" style="width:100%; border-radius:25px; font-size:1.4rem; height:65px;" value="${n}" placeholder="顧客姓名" oninput="searchStored(this, 'pop-box')" autocomplete="off">
                     <div id="pop-box" class="suggest-box"></div>
                 </div>
 
+                <!-- 性別切換 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <div id="pop-boy" class="gender-btn ${apt?.sex==='M'?'active-boy':''}" style="height:55px; font-size:1.1rem;" onclick="setSexPop('M')">♂ 男</div>
                     <div id="pop-girl" class="gender-btn ${(!apt || apt?.sex==='F')?'active-girl':''}" style="height:55px; font-size:1.1rem;" onclick="setSexPop('F')">♀ 女</div>
                 </div>
                 <input type="hidden" id="pop-sex" value="${apt?.sex || 'F'}">
 
+                <!-- 電話號碼 與 人數 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <div style="flex:2.5; position:relative;">
                         <input id="pop-p" class="luxe-btn" style="width:100%; border-radius:25px; height:60px; font-size:1.2rem;" 
@@ -1113,6 +1115,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                     </div>
                 </div>
 
+                <!-- 設計師與金額 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <select id="pop-s" class="luxe-btn" style="flex:1.5; border-radius:25px; height:60px; font-size:1.2rem;">
                         ${store.stylists.map(s => `<option value="${s.id}" ${String(sId||apt?.styId)===String(s.id)?'selected':''}>${s.name}</option>`).join('')}
@@ -1120,9 +1123,10 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                     <input id="pop-price" type="number" class="luxe-btn" style="flex:1; border-radius:25px; height:60px; text-align:center; font-size:1.2rem;" value="${apt?.price || ''}" placeholder="金額 $">
                 </div>
 
+                <!-- 服務項目抽屜 -->
                 <div style="margin-bottom:18px;">
                     <div id="tag-drawer-trigger" onclick="toggleTagDrawer()" style="background:rgba(212,175,55,0.1); border:1.5px solid var(--gold); padding:18px 25px; border-radius:25px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-weight:900; colorvar(--gold); font-size:1.1rem;"> 選擇服務項目</span>
+                        <span style="font-weight:900; color:var(--gold); font-size:1.1rem;"> 選擇服務項目</span>
                         <i id="tag-arrow" class="fas fa-chevron-down" style="color:var(--gold);"></i>
                     </div>
                     <div id="tag-drawer-content" style="display:none; margin-top:10px; background:rgba(0,0,0,0.03); padding:15px; border-radius:25px; max-height:180px; overflow-y:auto; -webkit-overflow-scrolling:touch;">
@@ -1134,6 +1138,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                     </div>
                 </div>
 
+                <!-- 日期與時間 -->
                 <div style="display:flex; gap:12px; margin-bottom:18px;">
                     <input id="pop-d" type="date" class="luxe-btn" style="flex:1.2; border-radius:25px; height:60px;" value="${apt?.date || curD.toLocaleDateString('sv')}">
                     <input id="pop-t" type="time" class="luxe-btn" style="flex:1; border-radius:25px; height:60px;" value="${apt?.time || '11:00'}">
@@ -1153,12 +1158,6 @@ async function popBooking(n="", p="", sId=null, editId=null) {
         cancelButtonColor: '#e5e5ea',
         reverseButtons: true,
         didOpen: () => {
-            // 🚀 【 iOS 防跳第三防線 】在彈窗剛跳出來的微秒瞬間，立刻強制還原跑道的滾動高度，完美壓制 iOS 原生回彈！
-            if (scrollContainer) {
-                scrollContainer.scrollLeft = scrollPosLeft;
-                scrollContainer.scrollTop = scrollPosTop;
-            }
-
             const container = Swal.getHtmlContainer();
             container.addEventListener('click', (e) => {
                 if(e.target.id !== 'pop-n') {
@@ -1181,6 +1180,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
                 n: n,
                 sex: document.getElementById('pop-sex').value,
                 p: document.getElementById('pop-p')?.value || "",
+                // 🚀 修正：從 pop-c 取得實際人數數值
                 c: document.getElementById('pop-c')?.value || "1", 
                 styId: document.getElementById('pop-s').value,
                 price: document.getElementById('pop-price')?.value || "0",
@@ -1213,7 +1213,7 @@ async function popBooking(n="", p="", sId=null, editId=null) {
 
         // 如果不是 Pro 且預約已達 2 筆，攔截！
         if (!isPro && store.appointments.length >= 2 && !editId) {
-            Swal.fire({ icon: 'lock', title: 'Aether Pro 專專屬', text: '試用版預約上限為 2 筆，請聯繫管理員激活系統。', confirmButtonColor: '#1d1d1f' });
+            Swal.fire({ icon: 'lock', title: 'Aether Pro 專屬', text: '試用版預約上限為 2 筆，請聯繫管理員激活系統。', confirmButtonColor: '#1d1d1f' });
             return;
         }
 
@@ -1273,10 +1273,9 @@ function toggleTempTag(tagName) {
 // --- S6: 跑道渲染與顧客搜尋 (以太精緻版 + 老婆門禁 + 功能全開) ---
 // ==========================================================================
 function renderDay(ds) {
-    // 🚀 核心物理釘子：只鎖定跑道容器本身的左右(Left)與上下(Top)滾動像素，不碰外層網頁，徹底解決修改時往上跳的問題！
+    // 🚀 記憶空間：重畫前記住現在橫向滑動到哪裡
     const scrollContainer = document.getElementById('day-lanes');
-    const scrollPosLeft = scrollContainer ? scrollContainer.scrollLeft : 0;
-    const scrollPosTop = scrollContainer ? scrollContainer.scrollTop : 0;
+    const scrollPos = scrollContainer ? scrollContainer.scrollLeft : 0;
 
     const days = ['日', '一', '二', '三', '四', '五', '六'];
     const dayTitleEl = document.getElementById('day-title');
@@ -1286,11 +1285,12 @@ function renderDay(ds) {
     if (!area) return;
     area.innerHTML = '';
 
-    // --- 跑道時段生成 ---
+    // --- 修改後的跑道時段生成 ---
     const start = parseInt(store.startH || '0'); 
     const end = parseInt(store.endH || '23'); 
     const hours = [];
     for (let i = start; i <= end; i++) {
+        // 🚀 關鍵：確保顯示為 00:00, 01:00... 格式
         hours.push(`${String(i).padStart(2, '0')}:00`);
     }
 
@@ -1299,74 +1299,73 @@ function renderDay(ds) {
         lane.className = 'lane';
         lane.innerHTML = `<div style="text-align:center; font-weight:900; color:${s.color}; font-size:1.8rem; margin-bottom:20px;">${s.name}</div>`;
 
-      hours.forEach(t => {
-        const row = document.createElement('div');
-        row.className = 'time-row-space';
-        row.style.position = "relative";
-        row.style.minHeight = "45px"; 
-        row.setAttribute("data-time", t); // 確保 CSS 標籤正確
+        hours.forEach(t => {
+            const row = document.createElement('div');
+            row.className = 'time-row-space';
+            row.style.position = "relative";
 
-        // 🚀【修正 1：精確的時間過濾與排序】
-        // 嚴格比對時間字串，且使用 .sort 確保後打的預約不會亂跑
-        const matched = store.appointments.filter(a => 
-            a.date === ds && 
-            a.time === t && // 直接比對完整時間字串，例如 "11:00" === "11:00"
-            String(a.styId) === String(s.id)
-        ).sort((a, b) => a.time.localeCompare(b.time));
+            const matched = store.appointments.filter(a => 
+                a.date === ds && 
+                a.time.split(':')[0] === t.split(':')[0] && 
+                String(a.styId) === String(s.id)
+            );
 
-        const label = `<div style="position:absolute; left:-48px; top:12px; font-size:0.75rem; color:#bbb; font-weight:900; width:40px; text-align:right;">${t}</div>`;
+            const label = `<div style="position:absolute; left:-45px; top:12px; font-size:0.75rem; color:#bbb; font-weight:900;">${t}</div>`;
 
-        if (matched.length > 0) {
-            row.style.display = "flex";
-            row.style.flexDirection = "column";
-            row.style.gap = "10px";
-            row.style.paddingLeft = "10px";
+            if (matched.length) {
+                row.innerHTML = label + matched.map(a => {
+                    const selectedTags = (a.payTags || []).map(tid => store.payTagsDef.find(pt => pt.id === tid)).filter(x => x);
+                    return `
+                        <div class="apt-card ${a.done ? 'completed' : ''}" style="--c:${s.color}; margin-left:15px; width:calc(100% - 20px); padding:25px; border-radius:35px; box-shadow:0 10px 30px rgba(0,0,0,0.05);">
+                            <div class="tag-group" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:15px;" onclick="event.stopPropagation(); popTagPicker('${a.id}', '${ds}')">
+                                <span style="font-size:1.3rem; display:flex; align-items:center;">
+                                    ${a.sex === 'M' ? '<i class="fas fa-mars" style="color:#007AFF;"></i>' : (a.sex === 'F' ? '<i class="fas fa-venus" style="color:#FF2D55;"></i>' : '')}
+                                </span>
+                                ${selectedTags.length > 0 ? selectedTags.map(pt => `<span class="tag-pill" style="background:${pt.color}; color:#fff; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">${pt.name}</span>`).join('') : '<span class="tag-pill" style="background:#f2f2f7; color:#aaa; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;">+ 狀態</span>'}
+                                <span class="tag-pill" style="border:1.5px solid var(--gold); color:${a.isVIP ? '#fff' : 'var(--gold)'}; background:${a.isVIP ? 'var(--gold)' : 'transparent'}; border-radius:12px; padding:5px 12px; font-size:0.8rem; font-weight:900;" onclick="event.stopPropagation(); toggleVIP('${a.id}','${ds}')">
+                                    ${a.isVIP ? '⭐ 指定' : '不指定'}
+                                </span>
+                            </div>
 
-            row.innerHTML = label + matched.map(a => {
-                const selectedTags = (a.payTags || []).map(tid => store.payTagsDef.find(pt => pt.id === tid)).filter(x => x);
-                return `
-                    <div class="apt-card ${a.done ? 'completed' : ''}" style="--c:${s.color}; position:relative; z-index:50; width:calc(100% - 20px); padding:20px; border-radius:30px; box-shadow:0 8px 20px rgba(0,0,0,0.06); border-left: 8px solid ${s.color}; background:rgba(255,255,255,0.95);">
-                        
-                        <div style="position:absolute; right:10px; top:10px; display:flex; gap:5px; z-index:999 !important; background:rgba(255,255,255,0.8); padding:5px; border-radius:12px; backdrop-filter:blur(5px);">
-                            <i class="fas fa-pen" style="color:#1d1d1f; font-size:1.1rem; cursor:pointer; padding:5px;" onclick="event.stopPropagation(); popBooking('${a.n}','${a.p}','${a.styId}','${a.id}')"></i>
-                            <i class="fas fa-trash-alt" style="color:#ff3b30; font-size:1.1rem; cursor:pointer; padding:5px;" onclick="event.stopPropagation(); confirmDelApt('${a.id}','${ds}')"></i>
-                            <i class="fas fa-check-circle" style="color:${a.done ? 'var(--gold)' : '#ccc'}; font-size:1.3rem; cursor:pointer; padding:5px;" onclick="event.stopPropagation(); toggleAptDone('${a.id}','${ds}')"></i>
-                        </div>
+                            <div style="position:absolute; right:20px; top:20px; display:flex; gap:15px; align-items:center;">
+                                <i class="fas fa-pen" style="color:#ccc; font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); popBooking('${a.n}','${a.p}','${a.styId}','${a.id}')"></i>
+                                <i class="fas fa-trash-alt" style="color:rgba(255,0,0,0.15); font-size:1.1rem; cursor:pointer;" onclick="event.stopPropagation(); confirmDelApt('${a.id}','${ds}')"></i>
+                                <i class="fas fa-check-circle" style="color:${a.done ? 'var(--gold)' : '#eee'}; font-size:1.8rem; cursor:pointer;" onclick="event.stopPropagation(); toggleAptDone('${a.id}','${ds}')"></i>
+                            </div>
 
-                        <div style="font-weight:900; color:var(--gold); font-size:0.9rem; margin-bottom:5px;">${a.time}</div>
-                        <div style="font-weight:900; font-size:1.6rem; color:#1d1d1f; margin-bottom:8px;">${a.n}</div>
-                        
-                        <div style="display:flex; justify-content:space-between; align-items:center;">
-                            <div style="font-weight:900; color:#888; font-size:0.85rem;"><i class="fas fa-phone-alt"></i> ${a.p || "無電話"}</div>
-                            <div style="font-weight:900; color:var(--gold); font-size:0.85rem;"><i class="fas fa-users"></i> ${a.c || 1} 人</div>
-                        </div>
-                    </div>`;
-            }).join('');
-        } else {
-            row.innerHTML = label + `<div style="flex:1; height:40px; margin-left:15px; border-bottom:1px solid #f2f2f7;"></div>`;
-        }
-        lane.appendChild(row);
-    });
+                            <div style="font-weight:900; color:var(--gold); font-size:1rem; letter-spacing:1px; margin-bottom:5px;">${a.time}</div>
+                            <div style="font-weight:900; font-size:2rem; color:#1d1d1f; margin-bottom:12px; letter-spacing:-1px;">${a.n}</div>
+
+                            <div onclick="event.stopPropagation(); popPriceEdit('${a.id}', '${ds}')" 
+                                 style="display:inline-flex; align-items:center; gap:8px; background:rgba(212,175,55,0.08); padding:8px 18px; border-radius:18px; cursor:pointer; margin-bottom:15px; border:1px solid rgba(212,175,55,0.15);">
+                                <span style="font-weight:900; color:var(--gold); font-size:1.2rem;">$ ${a.price || "補填金額"}</span>
+                            </div>
+
+                            <div style="background:rgba(0,0,0,0.02); padding:15px; border-radius:20px; border-left:5px solid var(--gold);">
+                                <div style="font-weight:900; color:var(--gold); font-size:1rem; margin-bottom:5px;"> ${(a.tags || []).join(' + ') || '服務項目'}</div>
+                                <div onclick="event.stopPropagation(); popNoteEdit('${a.id}', '${ds}')" style="font-size:0.95rem; color:#444; font-weight:700; cursor:pointer;">${a.note_full || "點擊輸入備註..."}</div>
+                            </div>
+
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding-top:15px; border-top:1px dashed #eee;">
+                                <div style="font-weight:900; color:#888; font-size:0.95rem;"><i class="fas fa-phone-alt"></i> ${a.p || "未留電話"}</div>
+                                <div style="font-weight:900; color:var(--gold); font-size:0.95rem;"><i class="fas fa-users"></i> ${a.c || 1} 人</div>
+                            </div>
+                        </div>`;
+                }).join('');
+            } else {
+                row.innerHTML = label + `<div style="flex:1; height:40px; margin-left:15px; border-bottom:1px solid #f2f2f7;"></div>`;
+            }
+            lane.appendChild(row);
+        });
         area.appendChild(lane);
     });
 
-   // 🚀 物理空間還原：利用強制鎖定與樣式覆蓋，防止 iOS 彈窗奪取捲軸控制權
+    // 🚀 空間還原：重畫完後，雙重幀同步閃回原本滑動的位置
     if (scrollContainer) {
-        // 1. 強制還原捲軸位置
-        scrollContainer.scrollLeft = scrollPosLeft;
-        scrollContainer.scrollTop = scrollPosTop;
-        
-        // 2. 這是關鍵：強迫 iOS 在重繪後，將外層容器的滾動條鎖在記憶位置
         requestAnimationFrame(() => {
-            scrollContainer.scrollLeft = scrollPosLeft;
-            scrollContainer.scrollTop = scrollPosTop;
-            
-            // 3. 額外加入對外層 .content-scroll 的保護
-            const mainScroll = document.querySelector('.content-scroll');
-            if (mainScroll) {
-                // 如果彈窗觸發了 body 變動，強制將主視窗高度撐住
-                mainScroll.style.minHeight = "100vh"; 
-            }
+            requestAnimationFrame(() => {
+                scrollContainer.scrollLeft = scrollPos;
+            });
         });
     }
 }
@@ -2858,7 +2857,6 @@ window.addEventListener('load', async () => {
         if (e.target.closest('.swal2-container') || 
             e.target.closest('.content-scroll') || 
             e.target.closest('.lane-container') ||
-            e.target.closest('#day-lanes') || // 👈 補上這行：精准放行跑道時段區
             e.target.tagName === 'INPUT' || 
             e.target.tagName === 'TEXTAREA' ||
             e.target.tagName === 'SELECT') {
@@ -3024,7 +3022,6 @@ function renderStats() {
     // 🚀 修正 1：精準抓取渲染區域 ID
     const area = document.getElementById('stats-render-container');
     if (!area) return;
-    area.innerHTML = ""; // 👈 增加這行，防止緩存數據殘留
 
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
     
@@ -3356,27 +3353,22 @@ async function popTagPicker(aptId, ds) {
     }
 }
 
-// --- 🚀 V318 旗艦版：支付標籤切換 (純 UI 渲染) ---
+// 輔助店員：點擊切換質感發亮
 function toggleSwalTag(id, color) {
     window.tmpSelected = window.tmpSelected || [];
     const el = document.getElementById('swal-tag-' + id);
-    if (!el) return;
-    
     const idx = window.tmpSelected.indexOf(id);
     if(idx > -1) {
-        // 取消選取
         window.tmpSelected.splice(idx, 1);
         el.style.background = 'transparent';
         el.style.color = color;
-        el.style.boxShadow = 'none'; // 移除發光
+        el.style.boxShadow = 'none';
     } else {
-        // 選取點亮
         window.tmpSelected.push(id);
         el.style.background = color;
         el.style.color = '#fff';
-        el.style.boxShadow = '0 8px 15px ' + color + '44'; // 加上精品發光
+        el.style.boxShadow = '0 8px 15px ' + color + '44';
     }
-    // 💡 這裡不執行 saveS() 與 renderDay()，確保彈窗操作流暢不卡頓
 }
 
 // --- 🚀 補回：備註快速修改引擎 ---
@@ -3752,6 +3744,69 @@ function popStyleDrawer() {
         confirmButtonColor: '#1d1d1f'
     });
 }
+
+// ==========================================================================
+// 📱 Aether V318: Quantum Zoom 旗艦縮放引擎 (iOS 原生手感版)
+// ==========================================================================
+(function() {
+    const laneArea = document.getElementById('day-lanes');
+    if (!laneArea) return;
+
+    let scale = 1;
+    let startDist = 0;
+    let initialScale = 1;
+
+    // 🚀 設定縮放中心與平滑過渡
+    laneArea.style.transformOrigin = "center top"; 
+    laneArea.style.transition = "transform 0.05s linear"; // 極短暫的緩衝，消除抖動
+
+    laneArea.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            // 抓取初始距離
+            startDist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+            initialScale = scale;
+        }
+    }, { passive: false });
+
+    laneArea.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2) {
+            e.preventDefault(); 
+            
+            const currentDist = Math.hypot(
+                e.touches[0].pageX - e.touches[1].pageX,
+                e.touches[0].pageY - e.touches[1].pageY
+            );
+
+            // 計算新的縮放值
+            const zoomFactor = currentDist / startDist;
+            scale = initialScale * zoomFactor;
+
+            // 🎯 限制範圍：最小縮到 0.3 (看全景)，最大 1.5 (看細節)
+            if (scale < 0.3) scale = 0.3;
+            if (scale > 1.5) scale = 1.5;
+
+            // 🚀 核心物理變革：直接縮放整個容器畫布
+            // 這樣文字、圓角、間距會完美等比例縮放，不會有佈局崩壞感
+            laneArea.style.transform = `scale(${scale})`;
+            
+            // 補償寬度：防止縮小時右邊出現大片空白，讓滾動條依然有效
+            laneArea.style.width = `${100 / scale}%`;
+        }
+    }, { passive: false });
+
+    // 🚀 雙擊重置功能 (賈伯斯式的直覺：點兩下回到最舒服的比例)
+    laneArea.addEventListener('dblclick', () => {
+        scale = 1;
+        laneArea.style.transition = "transform 0.4s cubic-bezier(0.23, 1, 0.32, 1)";
+        laneArea.style.transform = `scale(1)`;
+        laneArea.style.width = `100%`;
+        setTimeout(() => { laneArea.style.transition = "transform 0.05s linear"; }, 400);
+    });
+})();
+
 
 </script>
 </body>
