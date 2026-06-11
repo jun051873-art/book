@@ -3167,7 +3167,7 @@ function renderStats() {
 }
 
 // ==========================================================================
-// 🚀 V318 鋼鐵同步引擎：【自動建立資料 + 全新店號激活版】
+// 🚀 V318 鋼鐵同步引擎：【自動建立資料 + 全新店號激活版 + 本地防覆蓋保護】
 // ==========================================================================
 async function pullFromCloud() {
     const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
@@ -3184,7 +3184,7 @@ async function pullFromCloud() {
         
         let cloudData;
 
-        // 🌟 核心邏輯：如果雲端「完全沒有」這個店號文檔，或者文檔是空的
+        // 🌟 檢查雲端是否存在資料
         if (!snap.exists || !snap.data().stylists || snap.data().stylists.length === 0) {
             console.log("✨ 偵測到全新店號，正在為您初始化雲端空間...");
             
@@ -3204,32 +3204,33 @@ async function pullFromCloud() {
                 clients: [],
                 offDays: [],
                 lastUpdate: Date.now(),
-                status: "active" // 預設為激活狀態
+                status: "active"
             };
 
-            // 🚀 關鍵：主動在雲端建立文檔
             await db.collection("Salons").doc(auth.id).set(defaultStructure, { merge: true });
-            
-            // 如果是新建立的，直接讓 App 使用這套資料
             cloudData = defaultStructure;
             console.log("✅ 雲端空間初始化完成。");
         } else {
-            // 雲端已有資料，正常讀取
             cloudData = snap.data();
         }
 
-        // 🚀 版本比對與同步邏輯
+        // 🚀【核心保護】：版本比對邏輯
         const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
 
-        if (!localData.lastUpdate || (cloudData.lastUpdate > localData.lastUpdate)) {
-            console.log("✅ 執行同步：更新本地數據至最新版本");
+        // 判斷：只有當「本地沒有資料」或者「雲端的時間戳記確實比本地新」時，才進行覆蓋
+        if (!localData.lastUpdate || (cloudData.lastUpdate && cloudData.lastUpdate > localData.lastUpdate)) {
+            console.log("✅ 偵測到雲端有更新，執行同步：更新本地數據");
             store = cloudData;
             localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store));
+        } else if (localData.lastUpdate && cloudData.lastUpdate && cloudData.lastUpdate < localData.lastUpdate) {
+            // 🛡️ 保護機制：如果本地比較新，代表有剛輸入但未同步的資料，我們立即補上傳
+            console.log("💎 本地資料較新，執行自動補傳至雲端...");
+            await saveS();
         } else {
-            console.log("💎 本地資料已是最新。");
+            console.log("💎 資料版本一致，無需更新。");
         }
 
-        // 統一刷新 UI
+        // 統一刷新 UI (確保畫面更新)
         updateStoreUI();  
         initMonth();      
         renderCli();      
@@ -3238,7 +3239,7 @@ async function pullFromCloud() {
         }
         
     } catch (e) { 
-        console.warn("⚠️ 雲端拉取異常", e); 
+        console.warn("⚠️ 雲端拉取異常，系統將維持本機狀態運作", e); 
     }
 }
 async function editPayTag(id, old) {
