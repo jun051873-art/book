@@ -2836,10 +2836,6 @@ function copyKey(text) {
 // --- 🚀 V318 旗艦開機程序：含背景安全監控與防護攔截 ---
 // ==========================================================================
 window.addEventListener('load', async () => {
-    // 1. 先刷出本地資料 (確保離線時也能看見最後快取)
-    updateStoreUI(); 
-    initMonth();
-    renderCli();
     
     // 🚀 確保這行已經加入，這才是啟動巡邏的開關
     if (typeof startUnifiedPatrol === 'function') {
@@ -3232,14 +3228,6 @@ async function pullFromCloud() {
             await saveS();
         } else {
             console.log("💎 資料版本一致，無需更新。");
-        }
-
-        // 統一刷新 UI (確保畫面更新)
-        updateStoreUI();  
-        initMonth();      
-        renderCli();      
-        if (typeof renderDay === 'function' && curD) {
-            renderDay(curD.toLocaleDateString('sv'));
         }
         
     } catch (e) { 
@@ -3767,32 +3755,36 @@ function popStyleDrawer() {
     });
 }
 
-// 🚀 20秒自動同步與巡邏兵
+// 🚀 V318 即時同步大師：直接取代您原本的 startUnifiedPatrol
 function startUnifiedPatrol() {
-    console.log("📡 自動巡邏兵已就位...");
-    setInterval(async () => {
-        if (window.navigator.onLine && !window.IS_LOCKED_VACUUM) {
-            const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
-            if (!auth || !auth.id || auth.id === "未綁定") return;
+    console.log("📡 即時監聽已啟動，資料變動秒級同步...");
+    const auth = JSON.parse(localStorage.getItem('v318_booking_auth'));
+    if (!auth || !auth.id || auth.id === "未綁定") return;
+
+    // 使用 Firebase 的即時監聽，這會自動偵測雲端異動，不需要 setInterval
+    db.collection("Salons").doc(auth.id).onSnapshot((doc) => {
+        if (doc.exists) {
+            const cloudData = doc.data();
+            const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
             
-            try {
-                const snap = await db.collection("Salons").doc(auth.id).get();
-                if (snap.exists) {
-                    const cloudData = snap.data();
-                    const localData = JSON.parse(localStorage.getItem('SALON_LOCK_V318')) || {};
-                    // 如果雲端時間比本機新，自動抓取並更新畫面
-                    if (cloudData.lastUpdate > (localData.lastUpdate || 0)) {
-                        console.log("📥 偵測到雲端更新，自動對齊...");
-                        store = cloudData;
-                        localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store));
-                        updateStoreUI();
-                        initMonth();
-                        if(document.getElementById('pg-day').classList.contains('active')) renderDay(curD.toLocaleDateString('sv'));
-                    }
+            // 只有當雲端資料確實更新時才刷新
+            if (cloudData.lastUpdate > (localData.lastUpdate || 0)) {
+                console.log("📥 偵測到雲端即時變動，強制同步...");
+                store = cloudData;
+                localStorage.setItem('SALON_LOCK_V318', JSON.stringify(store));
+                
+                // 強制執行一次 UI 更新
+                updateStoreUI();
+                initMonth();
+                if(document.getElementById('pg-day').classList.contains('active')) {
+                    renderDay(curD.toLocaleDateString('sv'));
                 }
-            } catch (e) { console.warn("巡邏兵開小差了...", e); }
+                if(document.getElementById('pg-cli').classList.contains('active')) {
+                    renderCli();
+                }
+            }
         }
-    }, 3000); 
+    });
 }
 
 </script>
