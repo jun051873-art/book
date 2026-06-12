@@ -6,41 +6,79 @@
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4/turn.min.js"></script>
     <style>
-        body { background: #f5f5f7; font-family: -apple-system, sans-serif; margin: 0; padding: 40px; }
-        #flipbook { width: 800px; height: 500px; margin: 50px auto; }
-        #flipbook .page { background: white; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        #flipbook .page img { width: 100%; height: 100%; object-fit: contain; }
-        .toolbar { display: flex; gap: 30px; justify-content: center; padding: 20px; }
+        body { background: #f5f5f7; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; }
+        
+        /* 封面質感：高質感呈現 */
+        .notebook-cover { width: 150px; height: 200px; border-radius: 12px; cursor: pointer; box-shadow: 0 10px 30px rgba(0,0,0,0.15); background-size: cover; background-position: center; }
+        .style-leather { background: linear-gradient(145deg, #4a3c31, #2e241d); }
+        .style-paper { background: #fdf6e3; }
+        .style-denim { background: #4a6fa5; }
+
+        /* 介面佈局 */
+        #book-view { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 100; padding: 20px; }
+        .toolbar { display: flex; gap: 20px; margin-bottom: 20px; justify-content: center; }
         .action-link { cursor: pointer; color: #007aff; font-size: 16px; font-weight: 500; }
+        
+        /* 翻頁書本容器 */
+        #flipbook { width: 800px; height: 500px; margin: 0 auto; }
+        #flipbook .page { background: white; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        #flipbook .page img { width: 100%; height: 100%; object-fit: contain; }
+        .del-img-btn { position: absolute; top: 10px; right: 10px; background: red; color: white; border-radius: 50%; cursor: pointer; border: none; }
     </style>
 </head>
 <body>
 
-    <div class="toolbar">
-        <span class="action-link" onclick="document.getElementById('file-upload').click()">+ 新增作品</span>
+    <h1 style="text-align:center;">我的畫冊集</h1>
+    <div id="shelf" style="display:flex; gap:30px; justify-content:center;">
+        <div class="notebook-card" id="notebook-1">
+            <div class="notebook-cover style-leather" onclick="openBook()"></div>
+            <input type="text" value="我的畫冊" style="border:none; width:100%; text-align:center; margin-top:10px;">
+        </div>
     </div>
-    
-    <input type="file" id="file-upload" multiple accept="image/*" style="display:none" onchange="handleFiles(this)">
-    
-    <div id="flipbook">
-        <div class="page" style="background:#4a3c31; color:white;">封面</div>
+
+    <div id="book-view">
+        <div class="toolbar">
+            <span class="action-link" onclick="closeBook()">返回</span>
+            <span class="action-link" onclick="deleteNotebook()" style="color:#ff3b30;">刪除畫冊</span>
+            <span class="action-link" onclick="setPassword()">🔒 設定密碼</span>
+            <span class="action-link" onclick="document.getElementById('file-upload').click()">+ 新增作品</span>
+            <select onchange="changeCoverStyle(this.value)" style="border:none; color:#007aff;">
+                <option value="style-leather">皮革質感</option>
+                <option value="style-paper">紙張質感</option>
+                <option value="style-denim">布料質感</option>
+            </select>
+        </div>
+        
+        <input type="file" id="file-upload" multiple accept="image/*" style="display:none" onchange="handleFiles(this)">
+        
+        <div id="flipbook">
+            <div class="page" style="background:#ddd;">封面</div>
+        </div>
     </div>
 
     <script>
-        $(window).ready(function() {
-            $("#flipbook").turn({ width: 800, height: 500, autoCenter: true, gradients: true });
-        });
-
+        function openBook() { 
+            document.getElementById('book-view').style.display = 'block';
+            if(!$("#flipbook").data('turn')) {
+                $("#flipbook").turn({ width: 800, height: 500, autoCenter: true, gradients: true });
+            }
+        }
+        function closeBook() { document.getElementById('book-view').style.display = 'none'; }
+        
         function handleFiles(input) {
             for (let file of input.files) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const newPage = $('<div class="page"><img src="' + e.target.result + '"></div>');
+                    const newPage = $('<div class="page"><button class="del-img-btn" onclick="$(this).parent().remove()">×</button><img src="' + e.target.result + '"></div>');
                     $("#flipbook").turn("addPage", newPage);
                 }
                 reader.readAsDataURL(file);
             }
         }
+
+        function deleteNotebook() { if(confirm('確認移除此畫冊？')) { document.getElementById('notebook-1').remove(); closeBook(); } }
+        function setPassword() { prompt("設定密碼："); }
+        function changeCoverStyle(style) { document.querySelector('.notebook-cover').className = 'notebook-cover ' + style; }
     </script>
 </body>
 </html>
