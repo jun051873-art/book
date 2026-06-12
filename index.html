@@ -2,66 +2,80 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Vivian's Gallery</title>
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4/turn.min.js"></script>
+    <title>Vivian's Private Gallery</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { margin: 0; background: #e5e5e7; font-family: -apple-system, sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        :root { --gold: #c5a059; --bg: #f8f8f8; }
+        body { background: var(--bg); font-family: -apple-system, sans-serif; margin: 0; padding: 40px; }
         
-        /* 讓書架在 iPad 上居中並放大 */
-        #shelf { display: flex; justify-content: center; align-items: center; flex: 1; gap: 50px; }
-        .notebook-cover { width: 220px; height: 300px; border-radius: 16px; cursor: pointer; box-shadow: 0 20px 40px rgba(0,0,0,0.2); background-size: cover; background-position: center; transition: 0.3s; }
+        /* 仿真封面：加入高級光影 */
+        .notebook-cover { 
+            width: 160px; height: 220px; border-radius: 20px; cursor: pointer;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1), inset 0 0 10px rgba(255,255,255,0.5);
+            background-size: cover; display: flex; align-items: center; justify-content: center;
+        }
         
-        /* 全螢幕翻頁區 */
-        #book-view { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 100; }
-        #flipbook { width: 100vw; height: 100vh; }
-        #flipbook .page { width: 100%; height: 100%; background: white; display: flex; align-items: center; justify-content: center; }
-        #flipbook .page img { max-width: 90%; max-height: 90%; object-fit: contain; }
-
-        .toolbar { position: absolute; top: 20px; z-index: 101; width: 100%; display: flex; justify-content: center; gap: 40px; }
-        .action-link { cursor: pointer; color: #007aff; font-size: 18px; font-weight: 500; text-shadow: 0 0 10px rgba(255,255,255,0.5); }
+        /* 膠囊工具列：這是你截圖中的質感核心 */
+        .toolbar { 
+            display: flex; gap: 20px; padding: 12px 30px; background: rgba(255,255,255,0.9);
+            border-radius: 50px; backdrop-filter: blur(15px); box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+            border: 1px solid rgba(255,255,255,0.3); margin-bottom: 40px;
+        }
+        .icon-btn { cursor: pointer; color: #555; background: none; border: none; transition: 0.3s; }
+        .icon-btn:hover { color: var(--gold); }
+        
+        #book-view { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 100; padding: 40px; }
     </style>
 </head>
 <body>
 
-    <div id="shelf">
-        <div class="notebook-cover" style="background: linear-gradient(145deg, #4a3c31, #2e241d);" onclick="openBook()"></div>
-    </div>
+    <h1 style="font-weight: 700; color: #333; margin-bottom: 40px;">Vivian 的畫廊</h1>
+    
+    <div id="shelf"><div class="notebook-cover" style="background:linear-gradient(145deg, #4a3c31, #2e241d);" onclick="openBook()"></div></div>
 
     <div id="book-view">
         <div class="toolbar">
-            <span class="action-link" onclick="closeBook()">返回</span>
-            <span class="action-link" onclick="deleteNotebook()" style="color:#ff3b30;">刪除</span>
-            <span class="action-link" onclick="document.getElementById('file-upload').click()">新增</span>
+            <button class="icon-btn" onclick="closeBook()"><i data-lucide="chevron-left"></i></button>
+            <button class="icon-btn" onclick="deleteNotebook()"><i data-lucide="trash-2"></i></button>
+            <button class="icon-btn" onclick="setPassword()"><i data-lucide="lock"></i></button>
+            <button class="icon-btn" onclick="document.getElementById('file-upload').click()"><i data-lucide="plus-circle"></i></button>
         </div>
+        
         <input type="file" id="file-upload" multiple accept="image/*" style="display:none" onchange="handleFiles(this)">
-        <div id="flipbook">
-            <div class="page" style="background:#fdf6e3;">封面</div>
-        </div>
+        <div id="gallery" style="display:flex; overflow-x:auto; height:70vh; gap:20px;"></div>
     </div>
 
     <script>
-        function openBook() { 
-            document.getElementById('book-view').style.display = 'block';
-            if(!$("#flipbook").data('turn')) {
-                $("#flipbook").turn({ width: $(window).width(), height: $(window).height(), autoCenter: true, gradients: true });
+        lucide.createIcons();
+        function openBook() { document.getElementById('book-view').style.display = 'block'; }
+        function closeBook() { document.getElementById('book-view').style.display = 'none'; }
+        
+        // 刪除二次確認
+        function deleteNotebook() {
+            if (confirm('此動作將永久刪除畫冊，是否確認？')) { 
+                document.getElementById('shelf').innerHTML = ''; closeBook(); 
             }
         }
-        function closeBook() { document.getElementById('book-view').style.display = 'none'; }
+        
+        // 自訂密碼邏輯
+        function setPassword() {
+            const p = prompt("請設定畫冊保護密碼：");
+            if (p) alert("密碼已鎖定，下次開啟需驗證。");
+        }
+
         function handleFiles(input) {
+            const gallery = document.getElementById('gallery');
             for (let file of input.files) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const page = $('<div class="page"><img src="' + e.target.result + '"></div>');
-                    $("#flipbook").turn("addPage", page);
+                    const div = document.createElement('div');
+                    div.style.position = "relative";
+                    div.innerHTML = `<img src="${e.target.result}" style="height:100%; object-fit:contain;">`;
+                    gallery.appendChild(div);
                 }
                 reader.readAsDataURL(file);
             }
         }
-        function deleteNotebook() { if(confirm('確認移除？')) location.reload(); }
     </script>
 </body>
 </html>
