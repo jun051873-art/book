@@ -2,36 +2,138 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>Vivian's Private Gallery</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Vivian's Flagship Gallery</title>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/turn.js/4/turn.min.js"></script>
     <style>
-        :root { --gold: #c5a059; --bg: #f8f8f8; }
-        body { background: var(--bg); font-family: -apple-system, sans-serif; margin: 0; padding: 40px; }
+        :root {
+            --cover-p: #4a3c31; /* 封面主色 */
+            --cover-s: #2e241d; /* 封面次色 */
+            --geom: linear-gradient(145deg, var(--cover-p), var(--cover-s)); /* 幾何比例 */
+        }
         
-        /* 仿真封面：加入高級光影 */
+        body { 
+            margin: 0; background: #e5e5e7; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            height: 100vh; overflow: hidden;
+            background-image: url('https://googleusercontent.com/search?q=tbn:ANd9GcR_Y8uU0y_QOqYQv_K3u1P1Vp-8Fv-6P-G_tA'); /* 高解析木紋背景 */
+            background-size: cover;
+        }
+
+        /* 1. 左上角：流動光影玻璃標題 */
+        .glass-header {
+            position: absolute; top: 30px; left: 30px;
+            padding: 15px 35px; border-radius: 20px;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            cursor: pointer; overflow: hidden;
+        }
+        .glass-header::after {
+            content: ''; position: absolute; top: -100%; left: -100%;
+            width: 200%; height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: flowingLight 4s infinite linear;
+        }
+        @keyframes flowingLight {
+            0% { transform: translate(-30%, -30%); }
+            100% { transform: translate(30%, 30%); }
+        }
+        .header-text { font-size: 24px; font-weight: 700; color: #1d1d1f; position: relative; z-index: 1; }
+
+        /* 2. 右上角：設定齒輪 */
+        .settings-btn {
+            position: absolute; top: 35px; right: 35px;
+            background: rgba(255,255,255,0.3); backdrop-filter: blur(10px);
+            border-radius: 50%; width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.2);
+        }
+        .settings-btn:hover { transform: rotate(90deg); background: rgba(255,255,255,0.5); }
+
+        /* 3. 畫冊封面：物理仿真與幾何編輯 */
+        #shelf { height: 100vh; display: flex; justify-content: center; align-items: center; }
         .notebook-cover { 
-            width: 160px; height: 220px; border-radius: 20px; cursor: pointer;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1), inset 0 0 10px rgba(255,255,255,0.5);
-            background-size: cover; display: flex; align-items: center; justify-content: center;
+            width: 200px; height: 280px; border-radius: 20px; cursor: pointer;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.3), inset 0 0 15px rgba(0,0,0,0.2);
+            background: var(--geom); position: relative; transition: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        
-        /* 膠囊工具列：這是你截圖中的質感核心 */
-        .toolbar { 
-            display: flex; gap: 20px; padding: 12px 30px; background: rgba(255,255,255,0.9);
-            border-radius: 50px; backdrop-filter: blur(15px); box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            border: 1px solid rgba(255,255,255,0.3); margin-bottom: 40px;
+        /* 物理鑲嵌標籤 */
+        .inner-name-tag {
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 80%; padding: 8px 0; text-align: center;
+            background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px);
+            border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff; font-size: 14px; font-weight: 500; letter-spacing: 1px;
         }
-        .icon-btn { cursor: pointer; color: #555; background: none; border: none; transition: 0.3s; }
-        .icon-btn:hover { color: var(--gold); }
-        
-        #book-view { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 100; padding: 40px; }
+
+        /* 4. 設定側邊欄編輯器 */
+        #settings-panel {
+            position: fixed; top: 0; right: -350px; width: 300px; height: 100%;
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px);
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1); z-index: 300;
+            padding: 40px 25px; transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        #settings-panel.open { right: 0; }
+        .panel-section { margin-bottom: 30px; }
+        .panel-title { font-size: 14px; color: #888; text-transform: uppercase; margin-bottom: 15px; letter-spacing: 1px; }
+        .geom-btn { 
+            width: 60px; height: 60px; border-radius: 10px; margin-right: 10px; cursor: pointer;
+            border: 2px solid transparent; transition: 0.2s;
+        }
+        .geom-btn.active { border-color: #007aff; }
+
+        /* 畫冊開啟後的 UI 保持原樣 */
+        #book-view { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: #fff; z-index: 1000; padding: 40px; }
+        .toolbar { display: flex; gap: 30px; justify-content: center; margin-bottom: 30px; }
+        .icon-btn { cursor: pointer; background: none; border: none; color: #555; }
     </style>
 </head>
 <body>
 
-    <h1 style="font-weight: 700; color: #333; margin-bottom: 40px;">Vivian 的畫廊</h1>
-    
-    <div id="shelf"><div class="notebook-cover" style="background:linear-gradient(145deg, #4a3c31, #2e241d);" onclick="openBook()"></div></div>
+    <div class="glass-header" onclick="renameGallery()">
+        <div class="header-text" id="main-title">Vivian 的畫廊</div>
+    </div>
+
+    <div class="settings-btn" onclick="toggleSettings()">
+        <i data-lucide="settings" style="color: #333;"></i>
+    </div>
+
+    <div id="shelf">
+        <div class="notebook-cover" id="album-cover" onclick="openBook()">
+            <div class="inner-name-tag" id="album-name">Vivian 的畫冊</div>
+        </div>
+    </div>
+
+    <div id="settings-panel">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
+            <h2 style="margin:0; font-size:20px;">畫廊設定</h2>
+            <i data-lucide="x" onclick="toggleSettings()" style="cursor:pointer;"></i>
+        </div>
+        
+        <div class="panel-section">
+            <div class="panel-title">翻頁速度</div>
+            <input type="range" min="300" max="1500" value="600" style="width:100%;">
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-title">封面幾何比例</div>
+            <div style="display:flex;">
+                <div class="geom-btn" style="background:linear-gradient(to right, #4a3c31 50%, #2e241d 50%);" onclick="updateGeom('split')"></div>
+                <div class="geom-btn" style="background:linear-gradient(45deg, #4a3c31 50%, #2e241d 50%);" onclick="updateGeom('diag')"></div>
+                <div class="geom-btn" style="background:radial-gradient(circle, #4a3c31 40%, #2e241d 100%);" onclick="updateGeom('radial')"></div>
+            </div>
+        </div>
+
+        <div class="panel-section">
+            <div class="panel-title">封面配色分配</div>
+            <input type="color" id="colorP" value="#4a3c31" onchange="updateColors()">
+            <input type="color" id="colorS" value="#2e241d" onchange="updateColors()">
+        </div>
+    </div>
 
     <div id="book-view">
         <div class="toolbar">
@@ -40,38 +142,61 @@
             <button class="icon-btn" onclick="setPassword()"><i data-lucide="lock"></i></button>
             <button class="icon-btn" onclick="document.getElementById('file-upload').click()"><i data-lucide="plus-circle"></i></button>
         </div>
-        
         <input type="file" id="file-upload" multiple accept="image/*" style="display:none" onchange="handleFiles(this)">
-        <div id="gallery" style="display:flex; overflow-x:auto; height:70vh; gap:20px;"></div>
+        <div id="flipbook" style="width:800px; height:500px; margin:0 auto;">
+            <div class="page" style="background:#fdf6e3; display:flex; align-items:center; justify-content:center;">畫冊封面</div>
+        </div>
     </div>
 
     <script>
         lucide.createIcons();
-        function openBook() { document.getElementById('book-view').style.display = 'block'; }
-        function closeBook() { document.getElementById('book-view').style.display = 'none'; }
-        
-        // 刪除二次確認
-        function deleteNotebook() {
-            if (confirm('此動作將永久刪除畫冊，是否確認？')) { 
-                document.getElementById('shelf').innerHTML = ''; closeBook(); 
+
+        // 1. 設定面板開關
+        function toggleSettings() { document.getElementById('settings-panel').classList.toggle('open'); }
+
+        // 2. 標題與畫冊重命名
+        function renameGallery() {
+            const n = prompt("輸入新的畫廊名稱：", document.getElementById('main-title').innerText);
+            if(n) {
+                document.getElementById('main-title').innerText = n;
+                document.getElementById('album-name').innerText = n + " 的畫冊";
             }
         }
-        
-        // 自訂密碼邏輯
-        function setPassword() {
-            const p = prompt("請設定畫冊保護密碼：");
-            if (p) alert("密碼已鎖定，下次開啟需驗證。");
+
+        // 3. 幾何編輯器邏輯
+        function updateGeom(type) {
+            const root = document.documentElement;
+            const p = document.getElementById('colorP').value;
+            const s = document.getElementById('colorS').value;
+            if(type === 'split') root.style.setProperty('--geom', `linear-gradient(to right, ${p} 50%, ${s} 50%)`);
+            if(type === 'diag') root.style.setProperty('--geom', `linear-gradient(45deg, ${p} 50%, ${s} 50%)`);
+            if(type === 'radial') root.style.setProperty('--geom', `radial-gradient(circle, ${p} 30%, ${s} 100%)`);
         }
 
+        function updateColors() {
+            const p = document.getElementById('colorP').value;
+            const s = document.getElementById('colorS').value;
+            document.documentElement.style.setProperty('--cover-p', p);
+            document.documentElement.style.setProperty('--cover-s', s);
+            updateGeom('split'); // 重整色彩
+        }
+
+        // 4. 原有功能（保留）
+        function openBook() { 
+            document.getElementById('book-view').style.display = 'block';
+            if(!$("#flipbook").data('turn')) {
+                $("#flipbook").turn({ width: 800, height: 500, autoCenter: true, gradients: true });
+            }
+        }
+        function closeBook() { document.getElementById('book-view').style.display = 'none'; }
+        function deleteNotebook() { if(confirm('確認移除畫冊？')) { document.getElementById('shelf').innerHTML=''; closeBook(); } }
+        function setPassword() { prompt("設定密碼："); }
         function handleFiles(input) {
-            const gallery = document.getElementById('gallery');
             for (let file of input.files) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const div = document.createElement('div');
-                    div.style.position = "relative";
-                    div.innerHTML = `<img src="${e.target.result}" style="height:100%; object-fit:contain;">`;
-                    gallery.appendChild(div);
+                    const page = $('<div class="page"><img src="' + e.target.result + '" style="width:100%; height:100%; object-fit:contain;"></div>');
+                    $("#flipbook").turn("addPage", page);
                 }
                 reader.readAsDataURL(file);
             }
